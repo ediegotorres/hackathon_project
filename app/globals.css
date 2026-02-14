@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  --surface: #f6f7f4;
+  --surface-strong: #ecede7;
+  --ink: #18212d;
+  --muted: #5b6574;
+  --line: #dce0e8;
+  --brand: #0f766e;
+  --brand-soft: #99f6e4;
+  --danger: #be123c;
+}
+
+@theme inline {
+  --font-sans: "Segoe UI", "Avenir Next", "Trebuchet MS", sans-serif;
+}
+
+body {
+  background: radial-gradient(circle at 20% 20%, #ffffff, var(--surface));
+  color: var(--ink);
+  font-family: "Segoe UI", "Avenir Next", "Trebuchet MS", sans-serif;
+}
