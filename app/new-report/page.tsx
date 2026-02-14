@@ -119,11 +119,11 @@ export default function NewReportPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <LoadingOverlay show={loading} label="Running analysis..." />
       <div>
         <h1 className="text-3xl font-bold tracking-tight">New Report</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Enter values from your lab portal. Units shown are typical.</p>
+        <p className="mt-1 text-sm text-[var(--ink-soft)]">Enter values from your lab portal. Units shown are typical.</p>
       </div>
       <Card subtitle="Educational interpretation only. Confirm decisions with your clinician.">
         <div className="grid gap-4">
@@ -135,7 +135,7 @@ export default function NewReportPage() {
           />
 
           <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Lipids</h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Lipids</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Total Cholesterol"
@@ -189,7 +189,7 @@ export default function NewReportPage() {
           </div>
 
           <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Glucose</h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Glucose</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Glucose"
@@ -218,17 +218,21 @@ export default function NewReportPage() {
             </div>
           </div>
 
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-[var(--muted)]">Notes</span>
+          <label htmlFor="report-notes" className="block space-y-1.5">
+            <span className="text-sm font-medium text-[var(--ink-soft)]">Notes</span>
             <textarea
+              id="report-notes"
               rows={4}
               maxLength={400}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)] focus-visible:outline-none"
+              aria-describedby="report-notes-count"
+              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               placeholder="Context from this draw, fasting state, medication changes, etc."
             />
-            <p className="text-xs text-[var(--muted)]">{notes.length}/400</p>
+            <p id="report-notes-count" className="text-xs text-[var(--ink-soft)]">
+              {notes.length}/400
+            </p>
           </label>
         </div>
         {formError ? <p className="mt-3 text-sm text-[var(--danger)]">{formError}</p> : null}

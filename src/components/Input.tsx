@@ -8,17 +8,30 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ label, id, error, helperText, className, ...props }: InputProps) {
   const inputId = id ?? props.name ?? label.toLowerCase().replace(/\s+/g, "-");
+  const helperId = `${inputId}-helper`;
+  const errorId = `${inputId}-error`;
+  const describedBy = error ? errorId : helperText ? helperId : undefined;
 
   return (
     <label htmlFor={inputId} className="block space-y-1.5">
-      <span className="text-sm font-medium text-[var(--muted)]">{label}</span>
+      <span className="text-sm font-medium text-[var(--ink-soft)]">{label}</span>
       <input
         id={inputId}
-        className={`w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)] focus-visible:outline-none ${className ?? ""}`}
+        aria-invalid={Boolean(error)}
+        aria-describedby={describedBy}
+        className={`w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-slate-500 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${error ? "border-rose-400" : "focus:border-teal-400"} ${className ?? ""}`}
         {...props}
       />
-      {!error && helperText ? <p className="text-xs text-[var(--muted)]">{helperText}</p> : null}
-      {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
+      {!error && helperText ? (
+        <p id={helperId} className="text-xs text-[var(--ink-soft)]">
+          {helperText}
+        </p>
+      ) : null}
+      {error && (
+        <p id={errorId} role="alert" className="text-xs font-medium text-[var(--danger)]">
+          {error}
+        </p>
+      )}
     </label>
   );
 }

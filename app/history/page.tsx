@@ -41,7 +41,7 @@ export default function HistoryPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold tracking-tight">History</h1>
         <Link href="/new-report">
@@ -55,7 +55,7 @@ export default function HistoryPage() {
           description="Start with one report and build trends over time."
           compact
           icon={
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--muted)]" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--ink-soft)]" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M4 4h16v16H4z" />
               <path d="M7 12h10M7 8h10M7 16h6" />
             </svg>
@@ -65,7 +65,14 @@ export default function HistoryPage() {
               <Button>New Report</Button>
             </Link>
           }
-          secondaryAction={<Link href="/dashboard" className="text-[var(--brand)] hover:underline">Back to Dashboard</Link>}
+          secondaryAction={
+            <Link
+              href="/dashboard"
+              className="text-[var(--brand)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+            >
+              Back to Dashboard
+            </Link>
+          }
         />
       ) : (
         <section className="space-y-3">
@@ -75,7 +82,7 @@ export default function HistoryPage() {
             const visibleBadges = showAll ? badges : badges.slice(0, 3);
             const moreCount = badges.length > 3 ? badges.length - 3 : 0;
             return (
-              <Card key={report.id} className="p-4">
+              <Card key={report.id} className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-5">
                 <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{formatDate(report.dateISO)}</p>
@@ -91,7 +98,7 @@ export default function HistoryPage() {
                         <button
                           type="button"
                           onClick={() => setExpanded((prev) => ({ ...prev, [report.id]: !showAll }))}
-                          className="inline-flex h-6 items-center rounded-full bg-slate-100 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                          className="inline-flex h-6 items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 text-xs font-semibold text-slate-800 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
                         >
                           {showAll ? "Show less" : `+${moreCount} more`}
                         </button>

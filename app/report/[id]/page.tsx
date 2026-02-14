@@ -40,9 +40,9 @@ function deltaView(current?: number, previous?: number) {
 function Skeleton() {
   return (
     <div className="space-y-3">
-      <div className="h-8 w-48 animate-pulse rounded bg-slate-200" />
-      <div className="h-32 animate-pulse rounded-xl bg-slate-200" />
-      <div className="h-32 animate-pulse rounded-xl bg-slate-200" />
+      <div className="h-8 w-48 rounded bg-slate-200 motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="h-32 rounded-xl bg-slate-200 motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="h-32 rounded-xl bg-slate-200 motion-safe:animate-pulse motion-reduce:animate-none" />
     </div>
   );
 }
@@ -109,14 +109,14 @@ export default function ReportResultsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Report Results</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">{formatDate(currentReport.dateISO)}</p>
+          <p className="mt-1 text-sm text-[var(--ink-soft)]">{formatDate(currentReport.dateISO)}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <p className="rounded-full bg-[var(--surface-strong)] px-4 py-2 text-sm font-semibold">
+          <p className="rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2 text-sm font-semibold">
             High {summary.highCount} | Borderline {summary.borderlineCount} | Normal {summary.normalCount}
           </p>
           <Link href="/history">
@@ -128,9 +128,9 @@ export default function ReportResultsPage() {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(340px,1fr)]">
         <section className="space-y-5">
-          <Card title="Biomarker Tiles">
+          <Card title="Biomarker Overview" subtitle="Select a marker to view details and context.">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {markerDefs.map((marker) => {
                 const value = currentReport.biomarkers[marker.key];
@@ -143,22 +143,21 @@ export default function ReportResultsPage() {
                     type="button"
                     aria-label={`Select ${marker.label} marker`}
                     onClick={() => setSelectedKey(marker.key)}
-                    title={analysisItem?.rangeText || "No range text available"}
-                    className={`rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] ${
+                    className={`rounded-2xl border p-4 text-left motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
                       isSelected
-                        ? "border-[var(--brand)] bg-[var(--surface)] shadow-sm"
-                        : "border-[var(--line)] bg-white hover:border-slate-300"
+                        ? "border-[var(--brand)] bg-teal-50/50 shadow-sm"
+                        : "border-[var(--line)] bg-white hover:border-teal-300"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold">{marker.label}</p>
+                      <p className="text-sm font-semibold text-[var(--ink-soft)]">{marker.label}</p>
                       <StatusChip status={status} label={analysisItem ? undefined : "Saved"} />
                     </div>
-                    <p className="mt-2 text-lg font-semibold">
+                    <p className="mt-2 text-2xl font-bold tracking-tight">
                       {typeof value === "number" ? `${value} ${marker.unit}` : "Not provided"}
                     </p>
                     {analysisItem?.rangeText ? (
-                      <p className="mt-1 text-xs text-[var(--muted)]">{analysisItem.rangeText}</p>
+                      <p className="mt-2 text-xs font-medium text-[var(--ink-soft)]">{analysisItem.rangeText}</p>
                     ) : null}
                   </button>
                 );
@@ -172,7 +171,7 @@ export default function ReportResultsPage() {
                 {markerDefs.map((marker) => {
                   const delta = deltaView(currentReport.biomarkers[marker.key], previousReport.biomarkers[marker.key]);
                   return (
-                    <p key={marker.key} className="rounded-lg bg-[var(--surface)] px-3 py-2 text-sm">
+                    <p key={marker.key} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
                       <span className="font-medium">{marker.label}</span>{" "}
                       <span
                         className={
@@ -180,7 +179,7 @@ export default function ReportResultsPage() {
                             ? "text-amber-700"
                             : delta.trend === "down"
                               ? "text-emerald-700"
-                              : "text-[var(--muted)]"
+                              : "text-[var(--ink-soft)]"
                         }
                       >
                         {delta.text}
@@ -190,15 +189,15 @@ export default function ReportResultsPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-[var(--muted)]">Add another report to see changes over time.</p>
+              <p className="text-sm text-[var(--ink-soft)]">Add another report to see changes over time.</p>
             )}
           </Card>
 
           <Card title="Plain English Summary">
-            <p className="text-sm text-[var(--muted)]">{analysis?.summaryText || "Analysis not available yet."}</p>
+            <p className="text-sm text-[var(--ink-soft)]">{analysis?.summaryText || "Analysis not available yet."}</p>
           </Card>
           <Card title="Next Steps">
-            <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+            <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
               {(analysis?.nextSteps.length
                 ? analysis.nextSteps
                 : [
@@ -212,7 +211,7 @@ export default function ReportResultsPage() {
             </ul>
           </Card>
           <Card title="Questions for Clinician">
-            <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+            <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
               {(analysis?.doctorQuestions.length
                 ? analysis.doctorQuestions
                 : [
@@ -227,11 +226,11 @@ export default function ReportResultsPage() {
           </Card>
         </section>
 
-        <aside>
+        <aside className="lg:sticky lg:top-28 lg:self-start">
           <Card title="Marker Details">
             {!analysis ? (
               <div className="space-y-4">
-                <p className="text-sm text-[var(--muted)]">No analysis saved for this report yet.</p>
+                <p className="text-sm text-[var(--ink-soft)]">No analysis saved for this report yet.</p>
                 <div className="flex gap-2">
                   <Link href="/dashboard">
                     <Button variant="secondary">Back to Dashboard</Button>
@@ -244,8 +243,8 @@ export default function ReportResultsPage() {
             ) : selectedDef ? (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-[var(--muted)]">{selectedDef.label}</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-sm font-semibold text-[var(--ink-soft)]">{selectedDef.label}</p>
+                  <p className="text-3xl font-bold tracking-tight">
                     {typeof selectedValue === "number" ? `${selectedValue} ${selectedDef.unit}` : "Not provided"}
                   </p>
                 </div>
@@ -253,41 +252,41 @@ export default function ReportResultsPage() {
                   <>
                     <section>
                       <h3 className="text-sm font-semibold">What it means</h3>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="mt-1 text-sm text-[var(--ink-soft)]">
                         {selectedMarkerAnalysis.meaning || "Details not available for this marker."}
                       </p>
                     </section>
                     <section>
                       <h3 className="text-sm font-semibold">Common contributors</h3>
                       {selectedMarkerAnalysis.contributors?.length ? (
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
                           {selectedMarkerAnalysis.contributors.map((item) => (
                             <li key={item}>{item}</li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-1 text-sm text-[var(--muted)]">Details not available for this marker.</p>
+                        <p className="mt-1 text-sm text-[var(--ink-soft)]">Details not available for this marker.</p>
                       )}
                     </section>
                     <section>
                       <h3 className="text-sm font-semibold">Questions</h3>
                       {selectedMarkerAnalysis.questions?.length ? (
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
                           {selectedMarkerAnalysis.questions.map((item) => (
                             <li key={item}>{item}</li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-1 text-sm text-[var(--muted)]">Details not available for this marker.</p>
+                        <p className="mt-1 text-sm text-[var(--ink-soft)]">Details not available for this marker.</p>
                       )}
                     </section>
                   </>
                 ) : (
-                  <p className="text-sm text-[var(--muted)]">Details not available for this marker.</p>
+                  <p className="text-sm text-[var(--ink-soft)]">Details not available for this marker.</p>
                 )}
                 <section>
                   <h3 className="text-sm font-semibold">What to ask your clinician</h3>
-                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
                     <li>What trend matters most in my context?</li>
                     <li>What follow-up timing is appropriate?</li>
                     <li>Which related tests would add clarity?</li>
@@ -295,7 +294,7 @@ export default function ReportResultsPage() {
                 </section>
               </div>
             ) : (
-              <p className="text-sm text-[var(--muted)]">Select a marker to see details.</p>
+              <p className="text-sm text-[var(--ink-soft)]">Select a marker to see details.</p>
             )}
           </Card>
         </aside>

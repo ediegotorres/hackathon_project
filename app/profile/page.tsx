@@ -13,23 +13,35 @@ import { makeId } from "@/src/lib/utils";
 
 interface Errors {
   age?: string;
+  sexAtBirth?: string;
   heightCm?: string;
   weightKg?: string;
+  activityLevel?: string;
   lifestyleNotes?: string;
+}
+
+interface ProfileFormState {
+  age: string;
+  sexAtBirth: SexAtBirth | "";
+  heightCm: string;
+  weightKg: string;
+  activityLevel: ActivityLevel | "";
+  goals: string;
+  lifestyleNotes: string;
 }
 
 const defaultForm = {
   age: "",
-  sexAtBirth: "other" as SexAtBirth,
+  sexAtBirth: "",
   heightCm: "",
   weightKg: "",
-  activityLevel: "moderate" as ActivityLevel,
+  activityLevel: "",
   goals: "",
   lifestyleNotes: "",
-};
+} satisfies ProfileFormState;
 
 export default function ProfilePage() {
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState<ProfileFormState>(defaultForm);
   const [errors, setErrors] = useState<Errors>({});
   const [saved, setSaved] = useState(false);
   const [profileId, setProfileId] = useState<string>(makeId("profile"));
@@ -64,12 +76,14 @@ export default function ProfilePage() {
     const weightKg = Number(form.weightKg);
 
     if (!Number.isFinite(age) || age <= 0 || age > 120) nextErrors.age = "Enter an age between 1 and 120.";
+    if (!form.sexAtBirth) nextErrors.sexAtBirth = "Select sex at birth.";
     if (!Number.isFinite(heightCm) || heightCm <= 0 || heightCm > 250) {
       nextErrors.heightCm = "Enter height between 1 and 250 cm.";
     }
     if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 500) {
       nextErrors.weightKg = "Enter weight between 1 and 500 kg.";
     }
+    if (!form.activityLevel) nextErrors.activityLevel = "Select activity level.";
     if (form.lifestyleNotes.length > 400) nextErrors.lifestyleNotes = "Keep notes under 400 characters.";
 
     setErrors(nextErrors);
@@ -81,10 +95,10 @@ export default function ProfilePage() {
     const profile: UserProfile = {
       id: profileId,
       age: Number(form.age),
-      sexAtBirth: form.sexAtBirth,
+      sexAtBirth: form.sexAtBirth as SexAtBirth,
       heightCm: Number(form.heightCm),
       weightKg: Number(form.weightKg),
-      activityLevel: form.activityLevel,
+      activityLevel: form.activityLevel as ActivityLevel,
       goals: form.goals.trim() || undefined,
       lifestyleNotes: form.lifestyleNotes.trim() || undefined,
     };
@@ -94,19 +108,19 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
       <Card subtitle="Stored locally in your browser.">
         <div className="mb-4 space-y-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3">
           <div className="flex items-center justify-between text-sm">
             <p className="font-medium text-[var(--ink)]">Profile completeness</p>
-            <p className="text-[var(--muted)]">{completeCount}/5</p>
+            <p className="text-[var(--ink-soft)]">{completeCount}/5</p>
           </div>
           <ProgressBar value={completeCount} max={5} />
         </div>
 
         {saved ? (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 transition">
+          <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none">
             Saved
           </div>
         ) : null}
@@ -125,12 +139,16 @@ export default function ProfilePage() {
           <Select
             label="Sex at Birth"
             value={form.sexAtBirth}
+            error={errors.sexAtBirth}
             options={[
+              { label: "Select sex at birth", value: "" },
               { label: "Male", value: "male" },
               { label: "Female", value: "female" },
               { label: "Other", value: "other" },
             ]}
-            onChange={(e) => setForm((prev) => ({ ...prev, sexAtBirth: e.target.value as SexAtBirth }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, sexAtBirth: e.target.value as SexAtBirth | "" }))
+            }
           />
           <Input
             label="Height (cm)"
@@ -155,14 +173,16 @@ export default function ProfilePage() {
           <Select
             label="Activity Level"
             value={form.activityLevel}
+            error={errors.activityLevel}
             options={[
+              { label: "Select activity level", value: "" },
               { label: "Sedentary", value: "sedentary" },
               { label: "Light", value: "light" },
               { label: "Moderate", value: "moderate" },
               { label: "High", value: "high" },
             ]}
             onChange={(e) =>
-              setForm((prev) => ({ ...prev, activityLevel: e.target.value as ActivityLevel }))
+              setForm((prev) => ({ ...prev, activityLevel: e.target.value as ActivityLevel | "" }))
             }
           />
           <Input
@@ -171,19 +191,24 @@ export default function ProfilePage() {
             onChange={(e) => setForm((prev) => ({ ...prev, goals: e.target.value }))}
             placeholder="Example: improve LDL by next quarter"
           />
-          <label className="block space-y-1.5 sm:col-span-2">
-            <span className="text-sm font-medium text-[var(--muted)]">Lifestyle Notes</span>
+          <label htmlFor="lifestyle-notes" className="block space-y-1.5 sm:col-span-2">
+            <span className="text-sm font-medium text-[var(--ink-soft)]">Lifestyle Notes</span>
             <textarea
+              id="lifestyle-notes"
               value={form.lifestyleNotes}
               onChange={(e) => setForm((prev) => ({ ...prev, lifestyleNotes: e.target.value }))}
               maxLength={400}
               rows={4}
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-soft)] focus-visible:outline-none"
+              aria-invalid={Boolean(errors.lifestyleNotes)}
+              aria-describedby="lifestyle-notes-meta"
+              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               placeholder="Sleep patterns, exercise notes, dietary context..."
             />
-            <div className="flex items-center justify-between text-xs text-[var(--muted)]">
-              <span>{errors.lifestyleNotes ?? "Optional context"}</span>
-              <span>{form.lifestyleNotes.length}/400</span>
+            <div id="lifestyle-notes-meta" className="flex items-center justify-between text-xs">
+              <span className={errors.lifestyleNotes ? "font-medium text-[var(--danger)]" : "text-[var(--ink-soft)]"}>
+                {errors.lifestyleNotes ?? "Optional context"}
+              </span>
+              <span className="text-[var(--ink-soft)]">{form.lifestyleNotes.length}/400</span>
             </div>
           </label>
         </div>
@@ -197,7 +222,7 @@ export default function ProfilePage() {
           ) : null}
         </div>
       </Card>
-      <p className="text-xs text-[var(--muted)]">Educational use only. Confirm interpretation with a clinician.</p>
+      <p className="text-xs text-[var(--ink-soft)]">Educational use only. Confirm interpretation with a clinician.</p>
     </div>
   );
 }

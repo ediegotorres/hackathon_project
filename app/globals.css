@@ -1,22 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --surface: #f6f7f4;
-  --surface-strong: #ecede7;
-  --ink: #18212d;
-  --muted: #5b6574;
-  --line: #dce0e8;
+  --surface: #f4f7f7;
+  --surface-strong: #e8efee;
+  --ink: #17212e;
+  --ink-soft: #314253;
+  --muted: #4b5f74;
+  --line: #cfdae5;
   --brand: #0f766e;
+  --brand-strong: #0b5f59;
   --brand-soft: #99f6e4;
   --danger: #be123c;
 }
 
 @theme inline {
-  --font-sans: "Segoe UI", "Avenir Next", "Trebuchet MS", sans-serif;
+  --font-sans: "Avenir Next", "Segoe UI", "Trebuchet MS", "Segoe UI Variable", sans-serif;
 }
 
 body {
-  background: radial-gradient(circle at 20% 20%, #ffffff, var(--surface));
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 0% 0%, #ffffff 0%, #f8fbfb 40%, rgba(229, 245, 242, 0.8) 100%),
+    linear-gradient(180deg, #f7faf9 0%, #eef5f4 100%);
   color: var(--ink);
-  font-family: "Segoe UI", "Avenir Next", "Trebuchet MS", sans-serif;
+  font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", "Segoe UI Variable", sans-serif;
 }

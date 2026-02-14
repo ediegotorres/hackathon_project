@@ -9,8 +9,8 @@ export function DerivedMetricCard({ metric }: { metric: Derived }) {
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-[var(--muted)]">{metric.label}</p>
-          <p className="text-xl font-semibold">
+          <p className="text-sm text-[var(--ink-soft)]">{metric.label}</p>
+          <p className="text-2xl font-semibold tracking-tight">
             {metric.value}
             {metric.unit ? ` ${metric.unit}` : ""}
           </p>
