@@ -18,6 +18,12 @@ npm install
 npm run dev
 ```
 
+## OR
+```bash
+npm.cmd run build
+npm.cmd run dev
+```
+
 Open `http://localhost:3000`.
 
 To validate production build:
