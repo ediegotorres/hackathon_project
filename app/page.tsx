@@ -3,14 +3,13 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
-import { seedSampleData } from "@/src/lib/sampleData";
-import { clearLabLensData, setDemoMode } from "@/src/lib/storage";
+import { clearLabLensData, loadDemoMode, setDemoMode } from "@/src/lib/storage";
 
 export default function Home() {
   const router = useRouter();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Card className="overflow-hidden p-0">
         <div className="bg-[linear-gradient(120deg,#0f766e_0%,#134e4a_60%,#0f172a_100%)] px-6 py-10 text-white sm:px-10">
           <p className="text-sm uppercase tracking-[0.2em] text-teal-100">Hackathon Demo</p>
@@ -25,6 +24,10 @@ export default function Home() {
             <Button
               className="px-6 py-3 text-base shadow-md"
               onClick={() => {
+                if (loadDemoMode() === "sample") {
+                  router.push("/dashboard");
+                  return;
+                }
                 clearLabLensData();
                 setDemoMode("none");
                 router.push("/dashboard");
@@ -32,37 +35,27 @@ export default function Home() {
             >
               Start Tracking
             </Button>
-            <Button
-              variant="ghost"
-              className="border border-white/30 bg-white/10 text-white hover:bg-white/20"
-              onClick={() => {
-                seedSampleData();
-                router.push("/dashboard");
-              }}
-            >
-              Use Sample Data
-            </Button>
           </div>
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-3" aria-label="Platform highlights">
         <Card title="Track" subtitle="Capture reports over time">
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--ink-soft)]">
             Add each report with key blood markers and optional notes.
           </p>
         </Card>
         <Card title="Analyze" subtitle="Deterministic API stub today">
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--ink-soft)]">
             Calls `POST /api/analyze`; if unavailable, local mock analysis keeps demo flow working.
           </p>
         </Card>
         <Card title="Review" subtitle="Summaries and questions">
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--ink-soft)]">
             View status chips, derived metrics, and clinician discussion prompts.
           </p>
         </Card>
-      </div>
+      </section>
     </div>
   );
 }

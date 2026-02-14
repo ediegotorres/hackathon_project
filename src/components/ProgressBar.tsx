@@ -4,7 +4,10 @@ export function ProgressBar({ value, max = 100 }: { value: number; max?: number 
 
   return (
     <div className="h-2.5 w-full rounded-full bg-[var(--surface-strong)]">
-      <div className="h-2.5 rounded-full bg-[var(--brand)] transition-all" style={{ width: `${percent}%` }} />
+      <div
+        className="h-2.5 rounded-full bg-[var(--brand)] motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none"
+        style={{ width: `${percent}%` }}
+      />
     </div>
   );
 }

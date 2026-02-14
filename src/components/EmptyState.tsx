@@ -23,7 +23,7 @@ export function EmptyState({
     >
       {icon ? <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-strong)]">{icon}</div> : null}
       <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted)]">{description}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-[var(--ink-soft)]">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
       {secondaryAction ? <div className="mt-2 text-sm">{secondaryAction}</div> : null}
     </div>

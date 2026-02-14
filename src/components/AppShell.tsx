@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Button } from "@/src/components/Button";
+import { seedSampleData } from "@/src/lib/sampleData";
+import { clearLabLensData, loadDemoMode, setDemoMode as persistDemoMode } from "@/src/lib/storage";
+
+const DEMO_VISUAL_KEY = "lablens.demoVisualEnabled";
 
 const tabs = [
   { href: "/dashboard", label: "Dashboard" },
@@ -17,39 +22,168 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [demoMode, setDemoMode] = useState<"sample" | "none">("none");
+  const [demoVisualEnabled, setDemoVisualEnabled] = useState(false);
+  const isDemoActive = demoVisualEnabled && demoMode === "sample";
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const persistedMode = loadDemoMode();
+    const persistedVisual =
+      typeof window !== "undefined" && window.localStorage.getItem(DEMO_VISUAL_KEY) === "true";
+    if (!persistedVisual && persistedMode === "sample") {
+      clearLabLensData();
+      persistDemoMode("none");
+      setDemoMode("none");
+      setDemoVisualEnabled(false);
+      return;
+    }
+    setDemoMode(persistedMode);
+    setDemoVisualEnabled(persistedVisual && persistedMode === "sample");
+  }, []);
+
+  useEffect(() => {
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === "lablens.demoMode" || event.key === DEMO_VISUAL_KEY) {
+        setDemoMode(loadDemoMode());
+        setDemoVisualEnabled(window.localStorage.getItem(DEMO_VISUAL_KEY) === "true");
+      }
+    };
+    window.addEventListener("storage", onStorageChange);
+    return () => window.removeEventListener("storage", onStorageChange);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] text-[var(--ink)]">
-      <header className="border-b border-[var(--line)] bg-white/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[var(--brand)]" />
-              <span className="text-lg font-semibold tracking-tight">LabLens</span>
-            </Link>
-            <p className="text-xs text-[var(--muted)]">Educational use only</p>
-          </div>
-          <nav className="flex flex-wrap gap-2">
-            {tabs.map((tab) => {
-              const active = isActive(pathname, tab.href);
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`inline-flex h-10 items-center rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 ${
-                    active
-                      ? "bg-[var(--brand)] text-white shadow-sm"
-                      : "border border-[var(--line)] bg-white text-[var(--muted)] hover:border-slate-300 hover:text-[var(--ink)]"
-                  }`}
+    <div className="min-h-screen text-[var(--ink)]">
+      <header
+        className={`sticky top-0 z-40 border-b backdrop-blur-lg ${
+          isDemoActive
+            ? "border-teal-300 bg-[linear-gradient(90deg,rgba(13,148,136,0.14)_0%,rgba(240,253,250,0.96)_45%,rgba(255,255,255,0.96)_100%)]"
+            : "border-[var(--line)] bg-white/80"
+        }`}
+      >
+        <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-8 lg:px-10">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-transparent px-1 py-1 transition-all duration-200 motion-safe:hover:scale-105 hover:border-teal-300 hover:bg-teal-50 active:border-teal-400 active:bg-teal-100 focus-visible:outline-2 focus-visible:outline-teal-500 focus-visible:outline-offset-2"
+              >
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                  className="text-teal-600"
                 >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </nav>
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" className="opacity-90" />
+                  <circle cx="9" cy="9" r="1.2" fill="currentColor" className="opacity-70" />
+                  <path
+                    d="M6.5 14.5l3-3 2.3 2.3 4.7-5.3"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="opacity-90"
+                  />
+                </svg>
+                <span className="text-xl font-semibold tracking-tight text-gray-900">
+                  Lab<span className="font-bold text-teal-600">Lens</span>
+                </span>
+              </Link>
+              {isDemoActive ? (
+                <span className="inline-flex h-7 items-center rounded-full border border-teal-400 bg-teal-100 px-2.5 text-xs font-bold tracking-[0.08em] text-teal-900">
+                  DEMO MODE
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                className="h-9 px-3 text-sm"
+                onClick={() => {
+                  if (isDemoActive) {
+                    clearLabLensData();
+                    persistDemoMode("none");
+                    window.localStorage.setItem(DEMO_VISUAL_KEY, "false");
+                    setDemoMode("none");
+                    setDemoVisualEnabled(false);
+                    setMenuOpen(false);
+                    window.location.assign(pathname || "/");
+                    return;
+                  }
+                  seedSampleData();
+                  window.localStorage.setItem(DEMO_VISUAL_KEY, "true");
+                  setDemoVisualEnabled(true);
+                  setDemoMode("sample");
+                  setMenuOpen(false);
+                  window.location.assign(pathname || "/");
+                }}
+              >
+                {isDemoActive ? "Exit Demo" : "Demo"}
+              </Button>
+              <button
+                type="button"
+                aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={menuOpen}
+                aria-controls="primary-dropdown-menu"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--line)] bg-white text-[var(--ink)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none hover:bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="relative">
+            {menuOpen ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close navigation menu"
+                  onClick={() => setMenuOpen(false)}
+                  className="fixed inset-0 z-40 bg-transparent"
+                />
+                <nav
+                  id="primary-dropdown-menu"
+                  aria-label="Primary"
+                  className="absolute right-0 top-3 z-50 w-[min(18rem,92vw)] rounded-2xl border border-[var(--line)] bg-white p-2 shadow-[0_16px_36px_rgba(15,23,42,0.12)]"
+                >
+                  <ul className="space-y-1">
+                    {tabs.map((tab) => {
+                      const active = isActive(pathname, tab.href);
+                      return (
+                        <li key={tab.href}>
+                          <Link
+                            href={tab.href}
+                            onClick={() => setMenuOpen(false)}
+                            className={`inline-flex h-10 w-full items-center rounded-xl border px-3 text-sm font-semibold motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
+                              active
+                                ? "border-[var(--brand)] bg-[var(--brand)] text-white"
+                                : "border-transparent bg-white text-[var(--ink-soft)] hover:border-teal-200 hover:bg-teal-50 hover:text-[var(--ink)]"
+                            }`}
+                          >
+                            {tab.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="px-3 pb-1 pt-2 text-xs font-medium text-[var(--ink-soft)]">Educational use only</p>
+                </nav>
+              </>
+            ) : null}
+          </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">{children}</main>
     </div>
   );
 }

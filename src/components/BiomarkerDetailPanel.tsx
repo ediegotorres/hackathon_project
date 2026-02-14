@@ -14,7 +14,7 @@ export function BiomarkerDetailPanel({
   if (!biomarker) {
     return (
       <Card title="Marker Details">
-        <p className="text-sm text-[var(--muted)]">{emptyText}</p>
+        <p className="text-sm text-[var(--ink-soft)]">{emptyText}</p>
       </Card>
     );
   }
@@ -23,29 +23,29 @@ export function BiomarkerDetailPanel({
     <Card title={biomarker.label} subtitle={`${biomarker.value} ${biomarker.unit}`}>
       <div className="space-y-4">
         <StatusChip status={biomarker.status} />
-        <p className="text-sm text-[var(--muted)]">{biomarker.meaning || "No detail available yet."}</p>
+        <p className="text-sm text-[var(--ink-soft)]">{biomarker.meaning || "No detail available yet."}</p>
         <div>
           <h3 className="text-sm font-semibold">Contributors</h3>
           {biomarker.contributors && biomarker.contributors.length > 0 ? (
-            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
               {biomarker.contributors.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-sm text-[var(--muted)]">No contributors listed.</p>
+            <p className="mt-1 text-sm text-[var(--ink-soft)]">No contributors listed.</p>
           )}
         </div>
         <div>
           <h3 className="text-sm font-semibold">Questions</h3>
           {biomarker.questions && biomarker.questions.length > 0 ? (
-            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
               {biomarker.questions.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-sm text-[var(--muted)]">No questions listed.</p>
+            <p className="mt-1 text-sm text-[var(--ink-soft)]">No questions listed.</p>
           )}
         </div>
       </div>

@@ -11,7 +11,6 @@ import { ReportListItem } from "@/src/components/ReportListItem";
 import { Sparkline } from "@/src/components/Sparkline";
 import { StatusChip } from "@/src/components/StatusChip";
 import { loadAnalysis, loadProfile, loadReports } from "@/src/lib/storage";
-import { seedSampleData } from "@/src/lib/sampleData";
 import type { LabReport, UserProfile } from "@/src/lib/types";
 import { formatDate } from "@/src/lib/utils";
 
@@ -30,7 +29,6 @@ function profileCompleteness(profile: UserProfile | null) {
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [reports, setReports] = useState<LabReport[]>([]);
-  const [sampleSaved, setSampleSaved] = useState(false);
   const [trendKey, setTrendKey] = useState<keyof LabReport["biomarkers"]>("ldl");
 
   useEffect(() => {
@@ -47,35 +45,17 @@ export default function DashboardPage() {
     .filter((value): value is number => typeof value === "number");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              seedSampleData();
-              setProfile(loadProfile());
-              setReports(loadReports());
-              setSampleSaved(true);
-              setTimeout(() => setSampleSaved(false), 2200);
-            }}
-          >
-            Use Sample Data
-          </Button>
           <Link href="/new-report">
             <Button>New Report</Button>
           </Link>
         </div>
       </div>
 
-      {sampleSaved ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-          Sample data loaded.
-        </div>
-      ) : null}
-
-      <section className="grid gap-3 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-3">
         <AtAGlanceCard
           label="Latest Report"
           value={latestReport ? formatDate(latestReport.dateISO) : "None yet"}
@@ -88,7 +68,7 @@ export default function DashboardPage() {
         />
         <AtAGlanceCard label="Tracked Biomarkers" value="6" subtitle="Total Chol, LDL, HDL, TG, Glucose, A1C" />
       </section>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <StatusChip status="high" label={`High ${latestAnalysis?.overall.highCount ?? 0}`} />
         <StatusChip status="borderline" label={`Borderline ${latestAnalysis?.overall.borderlineCount ?? 0}`} />
         <StatusChip status="normal" label={`Normal ${latestAnalysis?.overall.normalCount ?? 0}`} />
@@ -100,11 +80,11 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <p className="font-medium text-[var(--ink)]">Profile completeness</p>
-                <p className="text-[var(--muted)]">{completeCount}/5</p>
+                <p className="text-[var(--ink-soft)]">{completeCount}/5</p>
               </div>
               <ProgressBar value={completeCount} max={5} />
             </div>
-            <div className="grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-3">
+            <div className="grid gap-3 text-sm text-[var(--ink-soft)] sm:grid-cols-3">
               <p>Age: {profile.age}</p>
               <p>Sex at birth: {profile.sexAtBirth}</p>
               <p>Activity: {profile.activityLevel}</p>
@@ -119,7 +99,7 @@ export default function DashboardPage() {
             description="Add your profile first so analysis can be contextualized."
             compact
             icon={
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--muted)]" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--ink-soft)]" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
                 <path d="M4 20a8 8 0 0 1 16 0" />
               </svg>
@@ -129,7 +109,14 @@ export default function DashboardPage() {
                 <Button>Set up Profile</Button>
               </Link>
             }
-            secondaryAction={<Link href="/new-report" className="text-[var(--brand)] hover:underline">Skip for now</Link>}
+            secondaryAction={
+              <Link
+                href="/new-report"
+                className="text-[var(--brand)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              >
+                Skip for now
+              </Link>
+            }
           />
         )}
       </Card>
@@ -142,7 +129,7 @@ export default function DashboardPage() {
             description="Create a report to generate trend views and analysis output."
             compact
             icon={
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--muted)]" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--ink-soft)]" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M5 4h14v16H5z" />
                 <path d="M8 9h8M8 13h8M8 17h5" />
               </svg>
@@ -152,7 +139,14 @@ export default function DashboardPage() {
                 <Button>New Report</Button>
               </Link>
             }
-            secondaryAction={<Link href="/history" className="text-[var(--brand)] hover:underline">View History</Link>}
+            secondaryAction={
+              <Link
+                href="/history"
+                className="text-[var(--brand)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              >
+                View History
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -164,13 +158,13 @@ export default function DashboardPage() {
       </section>
 
       <Card title="Trend Preview">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm text-[var(--muted)]">Marker</p>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-[var(--ink-soft)]">Marker</p>
           <select
             aria-label="Select marker for trend preview"
             value={trendKey}
             onChange={(e) => setTrendKey(e.target.value as keyof LabReport["biomarkers"])}
-            className="h-9 rounded-lg border border-[var(--line)] bg-white px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+            className="h-9 rounded-xl border border-[var(--line)] bg-white px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
           >
             <option value="ldl">LDL</option>
             <option value="a1c">A1C</option>
@@ -179,10 +173,10 @@ export default function DashboardPage() {
         {reports.length >= 2 ? (
           <div className="space-y-2">
             <Sparkline values={trendValues} />
-            <p className="text-sm text-[var(--muted)]">Preview mode. Connect to charting when backend trends are available.</p>
+            <p className="text-sm text-[var(--ink-soft)]">Preview mode. Connect to charting when backend trends are available.</p>
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted)]">Add at least 2 reports to see trends.</p>
+          <p className="text-sm text-[var(--ink-soft)]">Add at least 2 reports to see trends.</p>
         )}
       </Card>
     </div>
