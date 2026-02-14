@@ -26,8 +26,18 @@ export interface LabReport {
   id: string;
   dateISO: string;
   biomarkers: Biomarkers;
+  additionalBiomarkers?: AdditionalBiomarker[];
   notes?: string;
   createdAtISO: string;
+}
+
+export interface AdditionalBiomarker {
+  name: string;
+  value: number;
+  mappedKey?: keyof Biomarkers;
+  unit?: string;
+  referenceRange?: string;
+  status?: string;
 }
 
 export interface AnalysisResult {
@@ -57,4 +67,22 @@ export interface AnalysisResult {
   summaryText: string;
   nextSteps: string[];
   doctorQuestions: string[];
+}
+
+export type ReportUploadFileType = "image" | "pdf" | "text" | "other";
+
+export interface ExtractedBiomarkerRow {
+  name: string;
+  value: number;
+  mappedKey?: keyof Biomarkers;
+  unit?: string;
+  referenceRange?: string;
+  status?: string;
+}
+
+export interface ReportExtractionResponse {
+  fileName: string;
+  fileType: ReportUploadFileType;
+  allBiomarkers: ExtractedBiomarkerRow[];
+  warnings: string[];
 }

@@ -63,7 +63,7 @@ export default function ReportResultsPage() {
     setAnalysis(loadAnalysis(reportId));
     if (currentReport) {
       const firstPresent = markerDefs.find((def) => typeof currentReport.biomarkers[def.key] === "number");
-      setSelectedKey((firstPresent?.key ?? markerDefs[0].key) as MarkerKey);
+      setSelectedKey(firstPresent ? (firstPresent.key as MarkerKey) : null);
     }
     const timer = setTimeout(() => setLoading(false), 280);
     return () => clearTimeout(timer);
@@ -84,6 +84,9 @@ export default function ReportResultsPage() {
   const selectedDef = markerDefs.find((def) => def.key === selectedKey) ?? null;
   const selectedValue = selectedKey && currentReport ? currentReport.biomarkers[selectedKey] : undefined;
   const summary = analysis?.overall ?? { highCount: 0, borderlineCount: 0, normalCount: 0 };
+  const hasCoreBiomarkers = markerDefs.some(
+    (def) => currentReport && typeof currentReport.biomarkers[def.key] === "number",
+  );
 
   if (loading) {
     return <Skeleton />;
@@ -130,68 +133,90 @@ export default function ReportResultsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(340px,1fr)]">
         <section className="space-y-5">
-          <Card title="Biomarker Overview" subtitle="Select a marker to view details and context.">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {markerDefs.map((marker) => {
-                const value = currentReport.biomarkers[marker.key];
-                const analysisItem = markerFromAnalysis(analysis, marker.key);
-                const isSelected = selectedKey === marker.key;
-                const status = analysisItem?.status ?? "neutral";
-                return (
-                  <button
-                    key={marker.key}
-                    type="button"
-                    aria-label={`Select ${marker.label} marker`}
-                    onClick={() => setSelectedKey(marker.key)}
-                    className={`rounded-2xl border p-4 text-left motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
-                      isSelected
-                        ? "border-[var(--brand)] bg-teal-50/50 shadow-sm"
-                        : "border-[var(--line)] bg-white hover:border-teal-300"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-[var(--ink-soft)]">{marker.label}</p>
-                      <StatusChip status={status} label={analysisItem ? undefined : "Saved"} />
-                    </div>
-                    <p className="mt-2 text-2xl font-bold tracking-tight">
-                      {typeof value === "number" ? `${value} ${marker.unit}` : "Not provided"}
-                    </p>
-                    {analysisItem?.rangeText ? (
-                      <p className="mt-2 text-xs font-medium text-[var(--ink-soft)]">{analysisItem.rangeText}</p>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
-
-          <Card title="Since Last Report">
-            {previousReport ? (
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {hasCoreBiomarkers ? (
+            <Card title="Biomarker Overview" subtitle="Select a marker to view details and context.">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {markerDefs.map((marker) => {
-                  const delta = deltaView(currentReport.biomarkers[marker.key], previousReport.biomarkers[marker.key]);
+                  const value = currentReport.biomarkers[marker.key];
+                  const analysisItem = markerFromAnalysis(analysis, marker.key);
+                  const isSelected = selectedKey === marker.key;
+                  const status = analysisItem?.status ?? "neutral";
                   return (
-                    <p key={marker.key} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
-                      <span className="font-medium">{marker.label}</span>{" "}
-                      <span
-                        className={
-                          delta.trend === "up"
-                            ? "text-amber-700"
-                            : delta.trend === "down"
-                              ? "text-emerald-700"
-                              : "text-[var(--ink-soft)]"
-                        }
-                      >
-                        {delta.text}
-                      </span>
-                    </p>
+                    <button
+                      key={marker.key}
+                      type="button"
+                      aria-label={`Select ${marker.label} marker`}
+                      onClick={() => setSelectedKey(marker.key)}
+                      className={`rounded-2xl border p-4 text-left motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
+                        isSelected
+                          ? "border-[var(--brand)] bg-teal-50/50 shadow-sm"
+                          : "border-[var(--line)] bg-white hover:border-teal-300"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-[var(--ink-soft)]">{marker.label}</p>
+                        <StatusChip status={status} label={analysisItem ? undefined : "Saved"} />
+                      </div>
+                      <p className="mt-2 text-2xl font-bold tracking-tight">
+                        {typeof value === "number" ? `${value} ${marker.unit}` : "Not provided"}
+                      </p>
+                      {analysisItem?.rangeText ? (
+                        <p className="mt-2 text-xs font-medium text-[var(--ink-soft)]">{analysisItem.rangeText}</p>
+                      ) : null}
+                    </button>
                   );
                 })}
               </div>
-            ) : (
-              <p className="text-sm text-[var(--ink-soft)]">Add another report to see changes over time.</p>
-            )}
-          </Card>
+            </Card>
+          ) : null}
+
+          {hasCoreBiomarkers ? (
+            <Card title="Since Last Report">
+              {previousReport ? (
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {markerDefs.map((marker) => {
+                    const delta = deltaView(currentReport.biomarkers[marker.key], previousReport.biomarkers[marker.key]);
+                    return (
+                      <p key={marker.key} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
+                        <span className="font-medium">{marker.label}</span>{" "}
+                        <span
+                          className={
+                            delta.trend === "up"
+                              ? "text-amber-700"
+                              : delta.trend === "down"
+                                ? "text-emerald-700"
+                                : "text-[var(--ink-soft)]"
+                          }
+                        >
+                          {delta.text}
+                        </span>
+                      </p>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--ink-soft)]">Add another report to see changes over time.</p>
+              )}
+            </Card>
+          ) : null}
+
+          {currentReport.additionalBiomarkers?.length ? (
+            <Card title="Additional Biomarkers" subtitle="Parsed from uploaded report data.">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {currentReport.additionalBiomarkers.map((item, index) => (
+                  <p
+                    key={`${item.name}-${index}`}
+                    className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium">{item.name}</span>: {item.value}
+                    {item.unit ? ` ${item.unit}` : ""}
+                    {item.referenceRange ? ` | Range ${item.referenceRange}` : ""}
+                    {item.status ? ` | ${item.status}` : ""}
+                  </p>
+                ))}
+              </div>
+            </Card>
+          ) : null}
 
           <Card title="Plain English Summary">
             <p className="text-sm text-[var(--ink-soft)]">{analysis?.summaryText || "Analysis not available yet."}</p>
@@ -240,7 +265,7 @@ export default function ReportResultsPage() {
                   </Link>
                 </div>
               </div>
-            ) : selectedDef ? (
+            ) : selectedDef && hasCoreBiomarkers ? (
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-semibold text-[var(--ink-soft)]">{selectedDef.label}</p>
@@ -302,4 +327,3 @@ export default function ReportResultsPage() {
     </div>
   );
 }
-

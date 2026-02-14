@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# service account keys
+*-????????????-*.json
+vaulted-harbor-487418-v3-10f632eb46c3.json
+
+# service account keys
+*-????????????-*.json
+vaulted-harbor-487418-v3-10f632eb46c3.json
