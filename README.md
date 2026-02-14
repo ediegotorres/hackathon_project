@@ -13,6 +13,7 @@ https://hackathon-project-swart-sigma.vercel.app/
 - Tailwind CSS
 - Local persistence with `localStorage`
 - Integrated analyze endpoint: `POST /api/analyze` (stubbed)
+- Integrated report extraction endpoint: `POST /api/extract-report` (OCR + parsing)
 
 ## Run
 
@@ -41,6 +42,7 @@ npm run build
 - `/dashboard` profile snapshot, recent reports, quick actions
 - `/profile` editable profile form with validation
 - `/new-report` report entry + analyze flow
+- `/new-report` report entry + optional file upload extraction
 - `/report/[id]` biomarker/derived results + summary panels
 - `/history` full report list + trends table
 
@@ -58,6 +60,21 @@ npm run build
 4. If API fails, frontend falls back to local deterministic analysis generator
 5. Analysis saves to `lablens.analysis.<reportId>`
 6. User is redirected to `/report/[id]`
+
+## Upload Extraction Flow
+
+1. User uploads an image/PDF/text report in `/new-report`
+2. Frontend posts file to `POST /api/extract-report`
+3. API extracts OCR/text and parses supported biomarkers (Total Chol, LDL, HDL, TG, Glucose, A1C)
+4. Frontend auto-fills extracted values into the report form
+5. User can edit values manually before running analysis
+
+## OCR Credentials
+
+For image/PDF extraction, configure one of:
+
+- `GOOGLE_APPLICATION_CREDENTIALS`
+- `GCLOUD_VISION_KEY_FILE`
 
 ## Backend Handoff Points
 
