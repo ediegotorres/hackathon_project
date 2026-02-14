@@ -4,6 +4,9 @@ LabLens is a hackathon-ready frontend for bloodwork tracking with a deterministi
 
 Important: outputs are educational only and not medical advice.
 
+## Live Demo
+https://hackathon-project-swart-sigma.vercel.app/
+
 ## Tech
 
 - Next.js App Router + TypeScript
