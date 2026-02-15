@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { LabReport, UserProfile } from "@/src/lib/types";
 
 const defaultModels = ["gemini-2.0-flash", "gemini-1.5-flash"] as const;
@@ -74,7 +73,6 @@ export async function analyzeWithGemini(data: GeminiAnalysisRequest): Promise<Ge
   if (!apiKey) {
     throw new Error("Gemini API key is missing. Set GOOGLE_GEMINI_API_KEY or GEMINI_API_KEY.");
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
   const modelCandidates = getModelCandidates();
 
   // Build biomarkers context from main biomarkers
@@ -136,9 +134,31 @@ Respond ONLY with valid JSON in this exact format (no markdown, no code blocks, 
   let lastError: unknown;
   for (const modelName of modelCandidates) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text().trim();
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              responseMimeType: "application/json",
+            },
+          }),
+        },
+      );
+      if (!response.ok) {
+        const responseBody = await response.text();
+        throw new Error(`Gemini HTTP ${response.status}: ${responseBody}`);
+      }
+      const result = (await response.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (!responseText) {
+        throw new Error("Gemini returned an empty response.");
+      }
       const cleaned = responseText.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {

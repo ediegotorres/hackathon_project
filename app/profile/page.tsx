@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { Input } from "@/src/components/Input";
@@ -40,17 +40,18 @@ const defaultForm = {
   lifestyleNotes: "",
 } satisfies ProfileFormState;
 
-export default function ProfilePage() {
-  const [form, setForm] = useState<ProfileFormState>(defaultForm);
-  const [errors, setErrors] = useState<Errors>({});
-  const [saved, setSaved] = useState(false);
-  const [profileId, setProfileId] = useState<string>(makeId("profile"));
+function getInitialProfileState() {
+  const existing = loadProfile();
+  if (!existing) {
+    return {
+      profileId: makeId("profile"),
+      form: defaultForm,
+    };
+  }
 
-  useEffect(() => {
-    const existing = loadProfile();
-    if (!existing) return;
-    setProfileId(existing.id);
-    setForm({
+  return {
+    profileId: existing.id,
+    form: {
       age: String(existing.age),
       sexAtBirth: existing.sexAtBirth,
       heightCm: String(existing.heightCm),
@@ -58,8 +59,16 @@ export default function ProfilePage() {
       activityLevel: existing.activityLevel,
       goals: existing.goals || "",
       lifestyleNotes: existing.lifestyleNotes || "",
-    });
-  }, []);
+    } satisfies ProfileFormState,
+  };
+}
+
+export default function ProfilePage() {
+  const [initial] = useState(getInitialProfileState);
+  const [form, setForm] = useState<ProfileFormState>(initial.form);
+  const [errors, setErrors] = useState<Errors>({});
+  const [saved, setSaved] = useState(false);
+  const [profileId] = useState<string>(initial.profileId);
 
   const completeCount = [
     Number(form.age) > 0,

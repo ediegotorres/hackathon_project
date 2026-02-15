@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AtAGlanceCard } from "@/src/components/AtAGlanceCard";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
@@ -27,14 +27,9 @@ function profileCompleteness(profile: UserProfile | null) {
 }
 
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [reports, setReports] = useState<LabReport[]>([]);
+  const [profile] = useState<UserProfile | null>(() => loadProfile());
+  const [reports] = useState<LabReport[]>(() => loadReports());
   const [trendKey, setTrendKey] = useState<keyof LabReport["biomarkers"]>("ldl");
-
-  useEffect(() => {
-    setProfile(loadProfile());
-    setReports(loadReports());
-  }, []);
 
   const latestReport = reports[0] ?? null;
   const latestAnalysis = latestReport ? loadAnalysis(latestReport.id) : null;

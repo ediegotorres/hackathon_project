@@ -131,7 +131,6 @@ export function generateMockAnalysis(report: LabReport, profile?: UserProfile | 
 
   const totalChol = report.biomarkers.totalChol;
   const hdl = report.biomarkers.hdl;
-  const ldl = report.biomarkers.ldl;
   const glucose = report.biomarkers.glucose;
   const a1c = report.biomarkers.a1c;
   const derived: AnalysisResult["derived"] = [];

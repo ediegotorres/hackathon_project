@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -33,12 +33,8 @@ function reportBadges(
 }
 
 export default function HistoryPage() {
-  const [reports, setReports] = useState<LabReport[]>([]);
+  const [reports] = useState<LabReport[]>(() => loadReports());
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setReports(loadReports());
-  }, []);
 
   return (
     <div className="space-y-8">

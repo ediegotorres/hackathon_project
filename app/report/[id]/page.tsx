@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -37,37 +37,12 @@ function deltaView(current?: number, previous?: number) {
     : { text: `DOWN ${delta}`, trend: "down" as const };
 }
 
-function Skeleton() {
-  return (
-    <div className="space-y-3">
-      <div className="h-8 w-48 rounded bg-slate-200 motion-safe:animate-pulse motion-reduce:animate-none" />
-      <div className="h-32 rounded-xl bg-slate-200 motion-safe:animate-pulse motion-reduce:animate-none" />
-      <div className="h-32 rounded-xl bg-slate-200 motion-safe:animate-pulse motion-reduce:animate-none" />
-    </div>
-  );
-}
-
 export default function ReportResultsPage() {
   const params = useParams<{ id: string }>();
   const reportId = params.id;
-  const [reports, setReports] = useState<LabReport[]>([]);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const reports = useMemo<LabReport[]>(() => loadReports(), []);
+  const analysis = useMemo<AnalysisResult | null>(() => loadAnalysis(reportId), [reportId]);
   const [selectedKey, setSelectedKey] = useState<MarkerKey | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    const nextReports = loadReports();
-    const currentReport = nextReports.find((item) => item.id === reportId);
-    setReports(nextReports);
-    setAnalysis(loadAnalysis(reportId));
-    if (currentReport) {
-      const firstPresent = markerDefs.find((def) => typeof currentReport.biomarkers[def.key] === "number");
-      setSelectedKey(firstPresent ? (firstPresent.key as MarkerKey) : null);
-    }
-    const timer = setTimeout(() => setLoading(false), 280);
-    return () => clearTimeout(timer);
-  }, [reportId]);
 
   const currentReport = useMemo(
     () => reports.find((item) => item.id === reportId) ?? null,
@@ -79,18 +54,23 @@ export default function ReportResultsPage() {
     const index = ordered.findIndex((item) => item.id === currentReport.id);
     return index >= 0 ? (ordered[index + 1] ?? null) : null;
   }, [reports, currentReport]);
+  const fallbackSelectedKey = useMemo<MarkerKey | null>(() => {
+    if (!currentReport) return null;
+    const firstPresent = markerDefs.find((def) => typeof currentReport.biomarkers[def.key] === "number");
+    return firstPresent ? firstPresent.key : null;
+  }, [currentReport]);
+  const activeSelectedKey =
+    selectedKey && currentReport && typeof currentReport.biomarkers[selectedKey] === "number"
+      ? selectedKey
+      : fallbackSelectedKey;
 
-  const selectedMarkerAnalysis = selectedKey ? markerFromAnalysis(analysis, selectedKey) : null;
-  const selectedDef = markerDefs.find((def) => def.key === selectedKey) ?? null;
-  const selectedValue = selectedKey && currentReport ? currentReport.biomarkers[selectedKey] : undefined;
+  const selectedMarkerAnalysis = activeSelectedKey ? markerFromAnalysis(analysis, activeSelectedKey) : null;
+  const selectedDef = markerDefs.find((def) => def.key === activeSelectedKey) ?? null;
+  const selectedValue = activeSelectedKey && currentReport ? currentReport.biomarkers[activeSelectedKey] : undefined;
   const summary = analysis?.overall ?? { highCount: 0, borderlineCount: 0, normalCount: 0 };
   const hasCoreBiomarkers = markerDefs.some(
     (def) => currentReport && typeof currentReport.biomarkers[def.key] === "number",
   );
-
-  if (loading) {
-    return <Skeleton />;
-  }
 
   if (!currentReport) {
     return (
@@ -139,7 +119,7 @@ export default function ReportResultsPage() {
                 {markerDefs.map((marker) => {
                   const value = currentReport.biomarkers[marker.key];
                   const analysisItem = markerFromAnalysis(analysis, marker.key);
-                  const isSelected = selectedKey === marker.key;
+                  const isSelected = activeSelectedKey === marker.key;
                   const status = analysisItem?.status ?? "neutral";
                   return (
                     <button

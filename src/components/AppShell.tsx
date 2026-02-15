@@ -20,31 +20,32 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function getInitialDemoState() {
+  const persistedMode = loadDemoMode();
+  const persistedVisual =
+    typeof window !== "undefined" && window.localStorage.getItem(DEMO_VISUAL_KEY) === "true";
+
+  if (!persistedVisual && persistedMode === "sample") {
+    clearLabLensData();
+    persistDemoMode("none");
+    return { demoMode: "none" as const, demoVisualEnabled: false };
+  }
+
+  return {
+    demoMode: persistedMode,
+    demoVisualEnabled: persistedVisual && persistedMode === "sample",
+  };
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [demoMode, setDemoMode] = useState<"sample" | "none">("none");
-  const [demoVisualEnabled, setDemoVisualEnabled] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
+  const [initialDemoState] = useState(getInitialDemoState);
+  const [demoMode, setDemoMode] = useState<"sample" | "none">(initialDemoState.demoMode);
+  const [demoVisualEnabled, setDemoVisualEnabled] = useState(initialDemoState.demoVisualEnabled);
   const isDemoActive = demoVisualEnabled && demoMode === "sample";
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    const persistedMode = loadDemoMode();
-    const persistedVisual =
-      typeof window !== "undefined" && window.localStorage.getItem(DEMO_VISUAL_KEY) === "true";
-    if (!persistedVisual && persistedMode === "sample") {
-      clearLabLensData();
-      persistDemoMode("none");
-      setDemoMode("none");
-      setDemoVisualEnabled(false);
-      return;
-    }
-    setDemoMode(persistedMode);
-    setDemoVisualEnabled(persistedVisual && persistedMode === "sample");
-  }, []);
+  const isMenuOpen = menuOpen && menuPath === pathname;
 
   useEffect(() => {
     const onStorageChange = (event: StorageEvent) => {
@@ -130,10 +131,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Button>
               <button
                 type="button"
-                aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
-                aria-expanded={menuOpen}
+                aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={isMenuOpen}
                 aria-controls="primary-dropdown-menu"
-                onClick={() => setMenuOpen((prev) => !prev)}
+                onClick={() =>
+                  setMenuOpen((prev) => {
+                    const next = !prev;
+                    if (next) {
+                      setMenuPath(pathname);
+                    }
+                    return next;
+                  })
+                }
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--line)] bg-white text-[var(--ink)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none hover:bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
@@ -143,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="relative">
-            {menuOpen ? (
+            {isMenuOpen ? (
               <>
                 <button
                   type="button"
