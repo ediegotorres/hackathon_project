@@ -253,7 +253,7 @@ export default function NewReportPage() {
                 accept="image/*,.pdf,.txt,.csv,.tsv,.json,.xml"
                 onChange={onFileUpload}
                 disabled={uploading || loading}
-                className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface-strong)] file:px-3 file:py-1.5 file:text-xs file:font-semibold motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface)] file:px-3 file:py-1.5 file:text-xs file:font-semibold motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               />
             </label>
             {uploading ? <p className="text-sm text-[var(--ink-soft)]">Extracting report values...</p> : null}
@@ -283,7 +283,7 @@ export default function NewReportPage() {
             ) : (
               <div className="space-y-3">
                 {additionalBiomarkers.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-[var(--line)] bg-white p-3">
+                  <div key={item.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Input
                         id={`${item.id}-name`}
@@ -332,7 +332,7 @@ export default function NewReportPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               aria-describedby="report-notes-count"
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               placeholder="Context from this draw, fasting state, medication changes, etc."
             />
             <p id="report-notes-count" className="text-xs text-[var(--ink-soft)]">

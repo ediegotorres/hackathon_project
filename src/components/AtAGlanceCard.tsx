@@ -10,7 +10,7 @@ export function AtAGlanceCard({
   subtitle?: string;
 }) {
   return (
-    <Card className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-5">
+    <Card className="bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] p-5">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">{label}</p>
       <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
       {subtitle ? <p className="mt-2 text-sm text-[var(--ink-soft)]">{subtitle}</p> : null}

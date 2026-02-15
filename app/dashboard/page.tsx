@@ -78,7 +78,7 @@ export default function DashboardPage() {
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
           {profile?.name ? (
             <>
-              <span className="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-slate-500">
+              <span className="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface-strong)] text-[var(--muted)]">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
                   <path d="M4 20a8 8 0 0 1 16 0" />
@@ -103,7 +103,7 @@ export default function DashboardPage() {
           value={latestReport ? formatDate(latestReport.dateISO) : "None yet"}
           subtitle="Most recent report date"
         />
-        <Card className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-5">
+        <Card className="bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Flags</p>
           <div className="mt-3 grid grid-cols-3 gap-2">
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center">
@@ -220,7 +220,7 @@ export default function DashboardPage() {
             aria-label="Select marker for trend preview"
             value={trendKey}
             onChange={(e) => setTrendKey(e.target.value as keyof LabReport["biomarkers"])}
-            className="h-9 rounded-xl border border-[var(--line)] bg-white px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+            className="h-9 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
           >
             <option value="ldl">LDL</option>
             <option value="hdl">HDL</option>

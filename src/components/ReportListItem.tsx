@@ -13,7 +13,7 @@ export function ReportListItem({ report }: { report: LabReport }) {
   ].filter((entry) => typeof entry[1] === "number") as Array<[string, number]>;
 
   return (
-    <Card className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-5">
+    <Card className="bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-semibold">Report: {formatDate(report.dateISO)}</p>

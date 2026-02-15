@@ -6,7 +6,7 @@ const variantClass: Record<Variant, string> = {
   primary:
     "border border-[var(--brand-strong)] bg-[linear-gradient(135deg,var(--brand)_0%,var(--brand-strong)_100%)] text-white shadow-sm hover:brightness-95 active:brightness-90",
   secondary:
-    "border border-[var(--line)] bg-[var(--surface-strong)] text-[var(--ink)] hover:border-teal-300 hover:bg-teal-50 active:bg-teal-100",
+    "border border-[var(--line)] bg-[var(--surface-strong)] text-[var(--ink)] hover:border-[var(--brand)] hover:bg-[var(--surface)] active:brightness-95",
   ghost:
     "border border-transparent bg-transparent text-[var(--ink-soft)] hover:bg-[var(--surface-strong)] hover:text-[var(--ink)] active:bg-[var(--line)]",
   danger: "bg-[var(--danger)] text-white hover:brightness-95 active:brightness-90",

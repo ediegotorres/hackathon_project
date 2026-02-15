@@ -10,7 +10,7 @@ export function Sparkline({
   height?: number;
 }) {
   if (values.length < 2) {
-    return <div className="h-[120px] rounded-xl border border-dashed border-[var(--line)] bg-white" />;
+    return <div className="h-[120px] rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-strong)]" />;
   }
 
   const min = Math.min(...values);
@@ -29,7 +29,7 @@ export function Sparkline({
 
   return (
     <div className="space-y-2">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[140px] w-full rounded-xl border border-[var(--line)] bg-white p-2">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[140px] w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] p-2">
         <line x1="0" y1="7" x2={width} y2="7" stroke="#e2e8f0" strokeDasharray="4 4" />
         <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="#e2e8f0" strokeDasharray="4 4" />
         <line x1="0" y1={height - 7} x2={width} y2={height - 7} stroke="#e2e8f0" strokeDasharray="4 4" />

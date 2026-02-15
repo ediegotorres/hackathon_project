@@ -25,7 +25,7 @@ export function Select({ label, id, options, error, helperText, className, ...pr
         id={selectId}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
-        className={`w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${error ? "border-rose-400" : "focus:border-teal-400"} ${className ?? ""}`}
+        className={`w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 text-sm text-[var(--ink)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${error ? "border-rose-400" : "focus:border-teal-400"} ${className ?? ""}`}
         {...props}
       >
         {options.map((option) => (

@@ -17,7 +17,7 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-dashed border-[var(--line)] bg-[linear-gradient(180deg,#ffffff_0%,#f8faf9_100%)] px-6 text-center ${
+      className={`rounded-2xl border border-dashed border-[var(--line)] bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] px-6 text-center ${
         compact ? "py-5" : "py-8"
       }`}
     >

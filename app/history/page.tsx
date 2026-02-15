@@ -91,7 +91,7 @@ export default function HistoryPage() {
             const visibleBadges = showAll ? badges : badges.slice(0, 3);
             const moreCount = badges.length > 3 ? badges.length - 3 : 0;
             return (
-              <Card key={report.id} className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fcfb_100%)] p-5">
+              <Card key={report.id} className="bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] p-5">
                 <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{formatDate(report.dateISO)}</p>
@@ -107,7 +107,7 @@ export default function HistoryPage() {
                         <button
                           type="button"
                           onClick={() => setExpanded((prev) => ({ ...prev, [report.id]: !showAll }))}
-                          className="inline-flex h-6 items-center rounded-full border border-slate-300 bg-slate-100 px-2.5 text-xs font-semibold text-slate-800 motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                          className="inline-flex h-6 items-center rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-2.5 text-xs font-semibold text-[var(--ink-soft)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none hover:bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
                         >
                           {showAll ? "Show less" : `+${moreCount} more`}
                         </button>
@@ -138,7 +138,7 @@ export default function HistoryPage() {
                     ) : (
                       <Button
                         variant="secondary"
-                        className="h-8 min-w-28 border-slate-300 bg-slate-100 px-3 text-xs text-slate-700 hover:!border-rose-700 hover:!bg-rose-600 hover:!text-white"
+                        className="h-8 min-w-28 border-[var(--line)] bg-[var(--surface-strong)] px-3 text-xs text-[var(--ink-soft)] hover:!border-rose-700 hover:!bg-rose-600 hover:!text-white"
                         onClick={() => setConfirmingDeleteId(report.id)}
                       >
                         Delete

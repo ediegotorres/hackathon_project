@@ -242,7 +242,7 @@ export default function ReportResultsPage() {
           ) : (
             <Button
               variant="secondary"
-              className="border-slate-300 bg-slate-100 text-slate-700 hover:!border-rose-700 hover:!bg-rose-600 hover:!text-white"
+              className="border-[var(--line)] bg-[var(--surface-strong)] text-[var(--ink-soft)] hover:!border-rose-700 hover:!bg-rose-600 hover:!text-white"
               onClick={() => setConfirmDeleteOpen(true)}
             >
               Delete Report
@@ -266,8 +266,8 @@ export default function ReportResultsPage() {
                       onClick={() => setSelectedMarkerId(marker.id)}
                       className={`rounded-2xl border p-4 text-left motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
                         isSelected
-                          ? "border-[var(--brand)] bg-teal-50/50 shadow-sm"
-                          : "border-[var(--line)] bg-white hover:border-teal-300"
+                          ? "border-[var(--brand)] bg-[var(--surface-strong)] shadow-sm"
+                          : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--brand)]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -307,7 +307,7 @@ export default function ReportResultsPage() {
                                 ? "inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800"
                                 : delta.trend === "new"
                                   ? "inline-flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 font-semibold text-teal-800"
-                                : "inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700"
+                                : "inline-flex items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-2 py-0.5 font-semibold text-[var(--ink-soft)]"
                           }
                         >
                           {delta.trend === "up"

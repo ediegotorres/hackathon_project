@@ -220,7 +220,7 @@ export default function ProfilePage() {
               rows={4}
               aria-invalid={Boolean(errors.lifestyleNotes)}
               aria-describedby="lifestyle-notes-meta"
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2.5 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               placeholder="Sleep patterns, exercise notes, dietary context..."
             />
             <div id="lifestyle-notes-meta" className="flex items-center justify-between text-xs">

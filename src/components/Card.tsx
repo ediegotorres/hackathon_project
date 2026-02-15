@@ -13,7 +13,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)] motion-reduce:transition-none ${className ?? ""}`}
+      className={`rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)] motion-reduce:transition-none ${className ?? ""}`}
     >
       {(title || subtitle) && (
         <header className="mb-4 space-y-1">
