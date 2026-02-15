@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AtAGlanceCard } from "@/src/components/AtAGlanceCard";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
@@ -11,11 +11,12 @@ import { ProgressBar } from "@/src/components/ProgressBar";
 import { ReportListItem } from "@/src/components/ReportListItem";
 import { StatusChip } from "@/src/components/StatusChip";
 import { generateMockAnalysis } from "@/src/lib/analyze";
+import type { DashboardOverview } from "@/src/lib/dashboardAssistant";
 import { resolveCoreBiomarkers } from "@/src/lib/biomarkerMapping";
 import { normalizeMarkerName, summarizeReportStatuses } from "@/src/lib/markerStatus";
 import { loadAnalysis, loadProfile, loadReports } from "@/src/lib/storage";
 import type { LabReport, UserProfile } from "@/src/lib/types";
-import { formatDate } from "@/src/lib/utils";
+import { formatDate, makeId } from "@/src/lib/utils";
 
 function profileCompleteness(profile: UserProfile | null) {
   if (!profile) return 0;
@@ -39,6 +40,31 @@ const coreMarkerMeta: Record<keyof LabReport["biomarkers"], { label: string; uni
 };
 
 const chartPalette = ["#0f766e", "#14b8a6", "#0ea5e9", "#6366f1", "#f59e0b", "#e11d48", "#84cc16", "#f97316"];
+
+type AssistantChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+function statusUi(overallStatus: DashboardOverview["overallStatus"]) {
+  if (overallStatus === "healthy") {
+    return {
+      label: "Health appears stable",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    };
+  }
+  if (overallStatus === "needs_attention") {
+    return {
+      label: "Needs attention",
+      className: "border-rose-200 bg-rose-50 text-rose-800",
+    };
+  }
+  return {
+    label: "Mixed / monitor",
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+  };
+}
 
 export default function DashboardPage() {
   const [profile] = useState<UserProfile | null>(() => loadProfile());
@@ -89,6 +115,12 @@ export default function DashboardPage() {
 
   const [selectedMarkerIds, setSelectedMarkerIds] = useState<string[]>([]);
   const [selectionCustomized, setSelectionCustomized] = useState(false);
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantError, setAssistantError] = useState("");
+  const [assistantOverview, setAssistantOverview] = useState<DashboardOverview | null>(null);
+  const [assistantQuestion, setAssistantQuestion] = useState("");
+  const [assistantChat, setAssistantChat] = useState<AssistantChatMessage[]>([]);
+  const assistantChatRef = useRef<HTMLDivElement | null>(null);
   const validSelected = selectedMarkerIds.filter((id) => markerOptions.some((option) => option.id === id));
   const activeMarkerIds =
     validSelected.length > 0
@@ -153,6 +185,106 @@ export default function DashboardPage() {
   const trackedValue = trackedCount === 0 ? "No biomarkers tracked" : String(trackedCount);
   const trackedSubtitle =
     trackedCount === 0 ? "Upload or add biomarkers to start tracking trends." : `${trackedCount} total unique biomarkers`;
+
+  useEffect(() => {
+    if (!assistantChatRef.current) return;
+    assistantChatRef.current.scrollTop = assistantChatRef.current.scrollHeight;
+  }, [assistantChat]);
+
+  const onGenerateAssistantOverview = async () => {
+    if (!latestReport || assistantLoading) return;
+    setAssistantLoading(true);
+    setAssistantError("");
+
+    try {
+      const response = await fetch("/api/dashboard-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "overview",
+          profile,
+          latestReport,
+          previousReport: normalizedReports[1] ?? null,
+          latestAnalysis,
+          latestStatusCounts: latestSummary,
+        }),
+      });
+      const payload = (await response.json()) as { overview?: DashboardOverview; error?: string };
+      if (!response.ok || !payload.overview) {
+        throw new Error(payload.error || "Failed to generate dashboard overview.");
+      }
+
+      setAssistantOverview(payload.overview);
+      setAssistantChat([
+        {
+          id: makeId("assistant-overview"),
+          role: "assistant",
+          content: `${payload.overview.headline}\n\n${payload.overview.overview}`,
+        },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate dashboard overview.";
+      setAssistantError(message);
+    } finally {
+      setAssistantLoading(false);
+    }
+  };
+
+  const onSendAssistantQuestion = async () => {
+    const question = assistantQuestion.trim();
+    if (!question || !latestReport || assistantLoading) return;
+
+    const userMessage: AssistantChatMessage = {
+      id: makeId("assistant-user"),
+      role: "user",
+      content: question,
+    };
+    const nextConversation = [...assistantChat, userMessage];
+    setAssistantChat(nextConversation);
+    setAssistantQuestion("");
+    setAssistantError("");
+    setAssistantLoading(true);
+
+    try {
+      const response = await fetch("/api/dashboard-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "chat",
+          question,
+          profile,
+          latestReport,
+          previousReport: normalizedReports[1] ?? null,
+          latestAnalysis,
+          latestStatusCounts: latestSummary,
+          latestOverview: assistantOverview,
+          conversation: nextConversation.map((item) => ({
+            role: item.role,
+            content: item.content,
+          })),
+        }),
+      });
+
+      const payload = (await response.json()) as { answer?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to get assistant response.");
+      }
+      const answer = payload.answer?.trim() || "I could not generate a response right now.";
+      setAssistantChat((prev) => [
+        ...prev,
+        {
+          id: makeId("assistant-reply"),
+          role: "assistant",
+          content: answer,
+        },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to get assistant response.";
+      setAssistantError(message);
+    } finally {
+      setAssistantLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -261,6 +393,116 @@ export default function DashboardPage() {
               </Link>
             }
           />
+        )}
+      </Card>
+
+      <Card
+        title="AI Health Assistant"
+        subtitle="Educational guidance only. Not a diagnosis. Review recommendations with your clinician."
+      >
+        {!latestReport ? (
+          <p className="text-sm text-[var(--ink-soft)]">
+            Add at least one report to generate an AI health overview.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" className="h-9 px-4 text-sm" onClick={() => void onGenerateAssistantOverview()} disabled={assistantLoading}>
+                {assistantLoading ? "Analyzing..." : assistantOverview ? "Regenerate Overview" : "Generate Health Overview"}
+              </Button>
+              <p className="text-xs text-[var(--ink-soft)]">
+                Uses profile + latest report {normalizedReports[1] ? "+ previous report trend" : ""}.
+              </p>
+            </div>
+
+            {assistantOverview ? (
+              <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-[var(--ink)]">{assistantOverview.headline}</p>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusUi(assistantOverview.overallStatus).className}`}
+                  >
+                    {statusUi(assistantOverview.overallStatus).label}
+                  </span>
+                </div>
+                <p className="text-sm text-[var(--ink-soft)]">{assistantOverview.overview}</p>
+
+                {assistantOverview.attention.length > 0 ? (
+                  <section>
+                    <h3 className="text-sm font-semibold text-[var(--ink)]">Needs attention</h3>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
+                      {assistantOverview.attention.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+
+                {assistantOverview.suggestions.length > 0 ? (
+                  <section>
+                    <h3 className="text-sm font-semibold text-[var(--ink)]">Suggested next steps</h3>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
+                      {assistantOverview.suggestions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+              <h3 className="text-sm font-semibold text-[var(--ink)]">Ask follow-up questions</h3>
+              <div ref={assistantChatRef} className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-[var(--line)] bg-white p-3">
+                {assistantChat.length === 0 ? (
+                  <p className="text-xs text-[var(--ink-soft)]">
+                    Ask things like: &quot;What should I improve first?&quot; or &quot;Does anything need urgent follow-up?&quot;
+                  </p>
+                ) : (
+                  assistantChat.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`rounded-xl px-3 py-2 text-sm ${
+                        message.role === "user"
+                          ? "ml-8 bg-teal-600 text-white"
+                          : "mr-8 border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)]"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  ))
+                )}
+                {assistantLoading && assistantChat.length > 0 ? (
+                  <p className="text-xs text-[var(--ink-soft)]">AI assistant is thinking...</p>
+                ) : null}
+              </div>
+              {assistantError ? <p className="text-xs text-[var(--danger)]">{assistantError}</p> : null}
+              <div className="space-y-2">
+                <textarea
+                  rows={3}
+                  value={assistantQuestion}
+                  onChange={(e) => setAssistantQuestion(e.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void onSendAssistantQuestion();
+                    }
+                  }}
+                  disabled={assistantLoading || !latestReport}
+                  placeholder="Ask about your health overview, trends, or what to improve next."
+                  className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                />
+                <Button
+                  type="button"
+                  className="h-9 w-full"
+                  onClick={() => void onSendAssistantQuestion()}
+                  disabled={assistantLoading || !latestReport}
+                >
+                  {assistantLoading ? "Sending..." : "Ask Assistant"}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </Card>
 
@@ -383,4 +625,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
