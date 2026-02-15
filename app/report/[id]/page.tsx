@@ -24,7 +24,7 @@ const markerDefs: Array<{ key: MarkerKey; label: string; unit: string }> = [
   { key: "a1c", label: "A1C", unit: "%" },
 ];
 
-type MarkerCardStatus = "high" | "borderline" | "normal" | "neutral";
+type MarkerCardStatus = "high" | "borderline" | "normal" | "low" | "neutral";
 type UnifiedMarker = {
   id: string;
   compareKey: string;
@@ -46,13 +46,104 @@ function markerFromAnalysis(analysis: AnalysisResult | null, key: MarkerKey) {
 function mapStatus(value?: string): MarkerCardStatus {
   const normalized = value?.toLowerCase().trim();
   if (normalized === "high" || normalized === "abnormal") return "high";
-  if (normalized === "borderline" || normalized === "low") return "borderline";
+  if (normalized === "borderline") return "borderline";
+  if (normalized === "low") return "low";
   if (normalized === "normal") return "normal";
   return "neutral";
 }
 
+function derivedVitalsStatus(name: string, value: number): MarkerCardStatus | null {
+  const normalized = normalizeMarkerName(name);
+
+  if (normalized.includes("systolic blood pressure")) {
+    if (value < 90) return "low";
+    if (value >= 140) return "high";
+    if (value >= 120) return "borderline";
+    return "normal";
+  }
+
+  if (normalized.includes("diastolic blood pressure")) {
+    if (value < 60) return "low";
+    if (value >= 90) return "high";
+    if (value >= 80) return "borderline";
+    return "normal";
+  }
+
+  if (normalized === "pulse" || normalized.includes("heart rate")) {
+    if (value < 60) return "low";
+    if (value > 110) return "high";
+    if (value > 100 && value <= 110) return "borderline";
+    return "normal";
+  }
+
+  return null;
+}
+
+function statusForAdditionalMarker(name: string, value: number, status?: string): MarkerCardStatus {
+  const derived = derivedVitalsStatus(name, value);
+  if (derived) return derived;
+  return mapStatus(status);
+}
+
 function normalizeMarkerName(name: string) {
   return name.toLowerCase().replace(/[^\da-z]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function bloodPressureContext(name: string) {
+  const normalized = normalizeMarkerName(name);
+
+  if (normalized.includes("systolic blood pressure")) {
+    return {
+      rangeText: "Typical resting range: 90-120 mmHg",
+      meaning:
+        "Systolic pressure is the top blood pressure number and reflects artery pressure while the heart beats.",
+      contributors: [
+        "Recent stress, caffeine, or activity before measurement",
+        "Hydration status and sleep quality",
+        "Cuff size/positioning and measurement technique",
+      ],
+      questions: [
+        "Should I collect a 7-day home BP average for better context?",
+        "What systolic target fits my age and risk profile?",
+      ],
+    };
+  }
+
+  if (normalized.includes("diastolic blood pressure")) {
+    return {
+      rangeText: "Typical resting range: 60-80 mmHg",
+      meaning:
+        "Diastolic pressure is the bottom blood pressure number and reflects artery pressure between heart beats.",
+      contributors: [
+        "Stress, stimulants, and recovery state",
+        "Sleep consistency and daily sodium intake",
+        "Measurement timing and seated rest before reading",
+      ],
+      questions: [
+        "Do these diastolic readings warrant repeat checks at home?",
+        "How should I monitor trends versus one-off readings?",
+      ],
+    };
+  }
+
+  if (normalized === "pulse" || normalized.includes("heart rate")) {
+    return {
+      rangeText: "Typical resting range: 60-100 bpm",
+      meaning:
+        "Pulse reflects heart beats per minute and can vary with activity, stress, hydration, and medication.",
+      contributors: [
+        "Recent movement, anxiety, caffeine, or illness",
+        "Hydration, sleep, and cardiorespiratory fitness",
+        "Time of day and device measurement accuracy",
+      ],
+      questions: [
+        "Should I track resting pulse at the same time each day?",
+        "At what threshold should I seek follow-up if symptoms occur?",
+      ],
+    };
+  }
+
+  return null;
 }
 
 function deltaView(current?: number, previous?: number) {
@@ -145,14 +236,18 @@ export default function ReportResultsPage() {
         if (item.mappedKey && coreKeysInOverview.has(item.mappedKey)) {
           return acc;
         }
+        const context = bloodPressureContext(item.name);
         acc.push({
           id: `extra-${index}-${item.name}`,
           compareKey: `extra:${normalizeMarkerName(item.name)}`,
           label: item.name,
           value: item.value,
           unit: item.unit,
-          status: mapStatus(item.status),
-          rangeText: item.referenceRange ? `Range ${item.referenceRange}` : undefined,
+          status: statusForAdditionalMarker(item.name, item.value, item.status),
+          rangeText: item.referenceRange ? `Range ${item.referenceRange}` : context?.rangeText,
+          meaning: context?.meaning,
+          contributors: context?.contributors,
+          questions: context?.questions,
         });
         return acc;
       },

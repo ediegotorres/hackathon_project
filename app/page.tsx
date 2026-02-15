@@ -47,7 +47,7 @@ export default function Home() {
 
   return (
     <div className="space-y-9">
-      <Card className="relative overflow-hidden border-0 p-0 shadow-[0_24px_56px_rgba(15,23,42,0.18)]">
+      <Card className="hero-shell relative overflow-hidden border-0 p-0 shadow-[0_24px_56px_rgba(15,23,42,0.18)]">
         <div
           className="relative bg-[linear-gradient(130deg,#0f766e_0%,#0d9488_36%,#0f172a_100%)] bg-[length:200%_200%] px-6 py-10 text-white sm:px-10"
           style={{ animation: "gradient-shift 24s ease infinite" }}

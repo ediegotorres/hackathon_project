@@ -6,9 +6,9 @@ import { AtAGlanceCard } from "@/src/components/AtAGlanceCard";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { EmptyState } from "@/src/components/EmptyState";
+import { GroupedBarChart } from "@/src/components/GroupedBarChart";
 import { ProgressBar } from "@/src/components/ProgressBar";
 import { ReportListItem } from "@/src/components/ReportListItem";
-import { Sparkline } from "@/src/components/Sparkline";
 import { StatusChip } from "@/src/components/StatusChip";
 import { resolveCoreBiomarkers } from "@/src/lib/biomarkerMapping";
 import { loadAnalysis, loadProfile, loadReports } from "@/src/lib/storage";
@@ -31,24 +31,102 @@ function normalizeMarkerName(name: string) {
   return name.toLowerCase().replace(/[^\da-z]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+const coreMarkerMeta: Record<keyof LabReport["biomarkers"], { label: string; unit?: string }> = {
+  ldl: { label: "LDL", unit: "mg/dL" },
+  hdl: { label: "HDL", unit: "mg/dL" },
+  totalChol: { label: "Total Chol", unit: "mg/dL" },
+  triglycerides: { label: "Triglycerides", unit: "mg/dL" },
+  glucose: { label: "Glucose", unit: "mg/dL" },
+  a1c: { label: "A1C", unit: "%" },
+};
+
+const chartPalette = ["#0f766e", "#14b8a6", "#0ea5e9", "#6366f1", "#f59e0b", "#e11d48", "#84cc16", "#f97316"];
+
 export default function DashboardPage() {
   const [profile] = useState<UserProfile | null>(() => loadProfile());
   const [reports] = useState<LabReport[]>(() => loadReports());
-  const [trendKey, setTrendKey] = useState<keyof LabReport["biomarkers"]>("ldl");
   const normalizedReports = reports.map((report) => ({ ...report, biomarkers: resolveCoreBiomarkers(report) }));
 
   const latestReport = normalizedReports[0] ?? null;
   const latestAnalysis = latestReport ? loadAnalysis(latestReport.id) : null;
   const completeCount = profileCompleteness(profile);
-  const sortedForTrend = [...normalizedReports]
-    .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
-    .map((report) => ({
+  const optionMap = new Map<string, { id: string; label: string; unit?: string; isCore: boolean }>();
+  normalizedReports.forEach((report) => {
+    (Object.keys(coreMarkerMeta) as Array<keyof LabReport["biomarkers"]>).forEach((key) => {
+      const value = report.biomarkers[key];
+      if (typeof value !== "number") return;
+      if (!optionMap.has(`core:${key}`)) {
+        optionMap.set(`core:${key}`, {
+          id: `core:${key}`,
+          label: coreMarkerMeta[key].label,
+          unit: coreMarkerMeta[key].unit,
+          isCore: true,
+        });
+      }
+    });
+
+    (report.additionalBiomarkers ?? []).forEach((item) => {
+      if (item.mappedKey) return;
+      const normalized = normalizeMarkerName(item.name);
+      if (!normalized) return;
+      const optionId = `extra:${normalized}`;
+      if (!optionMap.has(optionId)) {
+        optionMap.set(optionId, {
+          id: optionId,
+          label: item.name,
+          unit: item.unit,
+          isCore: false,
+        });
+      }
+    });
+  });
+  const markerOptions = Array.from(optionMap.values()).sort((a, b) => {
+    if (a.isCore !== b.isCore) return a.isCore ? -1 : 1;
+    return a.label.localeCompare(b.label);
+  });
+
+  const [selectedMarkerIds, setSelectedMarkerIds] = useState<string[]>([]);
+  const [selectionCustomized, setSelectionCustomized] = useState(false);
+  const validSelected = selectedMarkerIds.filter((id) => markerOptions.some((option) => option.id === id));
+  const activeMarkerIds =
+    validSelected.length > 0
+      ? validSelected
+      : selectionCustomized
+        ? []
+        : markerOptions.slice(0, 3).map((option) => option.id);
+
+  const chartSeries = activeMarkerIds
+    .map((id, index) => {
+      const option = markerOptions.find((item) => item.id === id);
+      if (!option) return null;
+      return {
+        id: option.id,
+        label: option.unit ? `${option.label} (${option.unit})` : option.label,
+        color: chartPalette[index % chartPalette.length],
+      };
+    })
+    .filter((item): item is { id: string; label: string; color: string } => Boolean(item));
+
+  const orderedReports = [...normalizedReports].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const chartData = orderedReports.map((report) => {
+    const values: Record<string, number | undefined> = {};
+    activeMarkerIds.forEach((markerId) => {
+      if (markerId.startsWith("core:")) {
+        const key = markerId.replace("core:", "") as keyof LabReport["biomarkers"];
+        values[markerId] = report.biomarkers[key];
+        return;
+      }
+      const markerName = markerId.replace("extra:", "");
+      const match = (report.additionalBiomarkers ?? []).find(
+        (item) => !item.mappedKey && normalizeMarkerName(item.name) === markerName,
+      );
+      values[markerId] = typeof match?.value === "number" ? match.value : undefined;
+    });
+    return {
       label: formatDate(report.dateISO),
-      value: report.biomarkers[trendKey],
-    }))
-    .filter((item): item is { label: string; value: number } => typeof item.value === "number");
-  const trendValues = sortedForTrend.map((item) => item.value);
-  const trendLabels = sortedForTrend.map((item) => item.label);
+      values,
+    };
+  });
   const trackedBiomarkerKeys = new Set<string>();
   normalizedReports.forEach((report) => {
     Object.entries(report.biomarkers).forEach(([key, value]) => {
@@ -214,32 +292,66 @@ export default function DashboardPage() {
       </section>
 
       <Card title="Trend Preview">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-[var(--ink-soft)]">Marker</p>
-          <select
-            aria-label="Select marker for trend preview"
-            value={trendKey}
-            onChange={(e) => setTrendKey(e.target.value as keyof LabReport["biomarkers"])}
-            className="h-9 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
-          >
-            <option value="ldl">LDL</option>
-            <option value="hdl">HDL</option>
-            <option value="totalChol">Total Chol</option>
-            <option value="triglycerides">Triglycerides</option>
-            <option value="glucose">Glucose</option>
-            <option value="a1c">A1C</option>
-          </select>
+        <div className="mb-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-medium text-[var(--ink-soft)]">Displayed markers</p>
+            <select
+              aria-label="Add marker to bar chart"
+              defaultValue=""
+              onChange={(e) => {
+                const markerId = e.target.value;
+                if (!markerId) return;
+                setSelectionCustomized(true);
+                setSelectedMarkerIds((prev) => (prev.includes(markerId) ? prev : [...prev, markerId]));
+                e.currentTarget.value = "";
+              }}
+              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+            >
+              <option value="">Add marker...</option>
+              {markerOptions
+                .filter((option) => !activeMarkerIds.includes(option.id))
+                .map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.unit ? `${option.label} (${option.unit})` : option.label}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeMarkerIds.map((id) => {
+              const option = markerOptions.find((item) => item.id === id);
+              if (!option) return null;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setSelectionCustomized(true);
+                    setSelectedMarkerIds((prev) => prev.filter((value) => value !== id));
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-soft)] hover:border-rose-500 hover:text-rose-700"
+                  aria-label={`Remove ${option.label} from chart`}
+                >
+                  {option.unit ? `${option.label} (${option.unit})` : option.label}
+                  <span aria-hidden="true">x</span>
+                </button>
+              );
+            })}
+            {activeMarkerIds.length === 0 ? (
+              <span className="text-sm text-[var(--ink-soft)]">Select at least one marker.</span>
+            ) : null}
+          </div>
         </div>
-        {trendValues.length >= 2 ? (
+        {chartSeries.length > 0 && chartData.length > 0 ? (
           <div className="space-y-2">
-            <Sparkline values={trendValues} labels={trendLabels} />
+            <GroupedBarChart data={chartData} series={chartSeries} />
             <p className="text-sm text-[var(--ink-soft)]">
-              {`Showing ${trendValues.length} data points for ${trendKey}.`}
+              {`Showing ${chartSeries.length} marker${chartSeries.length === 1 ? "" : "s"} across ${chartData.length} report${chartData.length === 1 ? "" : "s"}.`}
             </p>
           </div>
         ) : (
           <p className="text-sm text-[var(--ink-soft)]">
-            Add at least 2 reports with this marker to show a trend line.
+            Add reports with biomarker values to display the bar chart.
           </p>
         )}
       </Card>
