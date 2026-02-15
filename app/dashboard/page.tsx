@@ -126,7 +126,9 @@ export default function DashboardPage() {
       label: formatDate(report.dateISO),
       values,
     };
-  });
+  }).filter((datum) =>
+    activeMarkerIds.some((markerId) => typeof datum.values[markerId] === "number"),
+  );
   const trackedBiomarkerKeys = new Set<string>();
   normalizedReports.forEach((report) => {
     Object.entries(report.biomarkers).forEach(([key, value]) => {
@@ -295,27 +297,43 @@ export default function DashboardPage() {
         <div className="mb-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium text-[var(--ink-soft)]">Displayed markers</p>
-            <select
-              aria-label="Add marker to bar chart"
-              defaultValue=""
-              onChange={(e) => {
-                const markerId = e.target.value;
-                if (!markerId) return;
-                setSelectionCustomized(true);
-                setSelectedMarkerIds((prev) => (prev.includes(markerId) ? prev : [...prev, markerId]));
-                e.currentTarget.value = "";
-              }}
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
-            >
-              <option value="">Add marker...</option>
-              {markerOptions
-                .filter((option) => !activeMarkerIds.includes(option.id))
-                .map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.unit ? `${option.label} (${option.unit})` : option.label}
-                  </option>
-                ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Add marker to bar chart"
+                defaultValue=""
+                onChange={(e) => {
+                  const markerId = e.target.value;
+                  if (!markerId) return;
+                  setSelectionCustomized(true);
+                  setSelectedMarkerIds((prev) => {
+                    const base = prev.length > 0 || selectionCustomized ? prev : activeMarkerIds;
+                    return base.includes(markerId) ? base : [...base, markerId];
+                  });
+                  e.currentTarget.value = "";
+                }}
+                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 text-sm motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              >
+                <option value="">Add marker...</option>
+                {markerOptions
+                  .filter((option) => !activeMarkerIds.includes(option.id))
+                  .map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.unit ? `${option.label} (${option.unit})` : option.label}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-9 px-3 text-xs"
+                onClick={() => {
+                  setSelectionCustomized(true);
+                  setSelectedMarkerIds([]);
+                }}
+              >
+                Reset graph
+              </Button>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {activeMarkerIds.map((id) => {
