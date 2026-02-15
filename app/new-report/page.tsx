@@ -25,6 +25,7 @@ type AdditionalBiomarkerFormItem = {
 export default function NewReportPage() {
   const router = useRouter();
   const [dateISO, setDateISO] = useState(() => new Date().toISOString().slice(0, 10));
+  const [reportType, setReportType] = useState<NonNullable<LabReport["reportType"]>>("blood_report");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,12 +36,26 @@ export default function NewReportPage() {
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [additionalBiomarkers, setAdditionalBiomarkers] = useState<AdditionalBiomarkerFormItem[]>([]);
   const [additionalErrors, setAdditionalErrors] = useState<Record<string, string>>({});
+  const [bloodPressure, setBloodPressure] = useState({ systolic: "", diastolic: "", pulse: "" });
+  const [bloodPressureErrors, setBloodPressureErrors] = useState<{
+    systolic?: string;
+    diastolic?: string;
+    pulse?: string;
+  }>({});
 
   const filledCount = useMemo(
     () => additionalBiomarkers.filter((item) => item.name.trim() && item.value.trim()).length,
     [additionalBiomarkers],
   );
-  const canAnalyze = Boolean(dateISO) && filledCount >= 1;
+  const canAnalyze = useMemo(() => {
+    if (!dateISO) return false;
+    if (reportType === "blood_pressure") {
+      return Boolean(
+        bloodPressure.systolic.trim() && bloodPressure.diastolic.trim() && bloodPressure.pulse.trim(),
+      );
+    }
+    return filledCount >= 1;
+  }, [bloodPressure.diastolic, bloodPressure.pulse, bloodPressure.systolic, dateISO, filledCount, reportType]);
 
   const validateAdditionalBiomarkers = () => {
     const nextErrors: Record<string, string> = {};
@@ -55,6 +70,26 @@ export default function NewReportPage() {
       }
     });
     setAdditionalErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateBloodPressure = () => {
+    const nextErrors: { systolic?: string; diastolic?: string; pulse?: string } = {};
+    const systolic = Number(bloodPressure.systolic.trim());
+    const diastolic = Number(bloodPressure.diastolic.trim());
+    const pulse = Number(bloodPressure.pulse.trim());
+
+    if (!bloodPressure.systolic.trim() || !Number.isFinite(systolic)) {
+      nextErrors.systolic = "Enter a numeric systolic value.";
+    }
+    if (!bloodPressure.diastolic.trim() || !Number.isFinite(diastolic)) {
+      nextErrors.diastolic = "Enter a numeric diastolic value.";
+    }
+    if (!bloodPressure.pulse.trim() || !Number.isFinite(pulse)) {
+      nextErrors.pulse = "Enter a numeric pulse value.";
+    }
+
+    setBloodPressureErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
@@ -158,40 +193,68 @@ export default function NewReportPage() {
   const onAnalyze = async () => {
     setFormError("");
     if (!canAnalyze) {
-      setFormError("Enter a report date and at least 1 biomarker value.");
+      setFormError(
+        reportType === "blood_pressure"
+          ? "Enter a report date and valid Sys/Dia/Pul values."
+          : "Enter a report date and at least 1 biomarker value.",
+      );
       return;
     }
-    if (!validateAdditionalBiomarkers()) return;
+    if (reportType === "blood_report" && !validateAdditionalBiomarkers()) return;
+    if (reportType === "blood_pressure" && !validateBloodPressure()) return;
 
-    const additionalPayload = additionalBiomarkers.reduce<AdditionalBiomarker[]>((acc, item) => {
-      const name = item.name.trim();
-      const value = Number(item.value.trim());
-      const mappedKey = item.mappedKey ?? inferMappedKey(name);
-      if (!name || !Number.isFinite(value)) {
-        return acc;
-      }
+    const additionalPayload =
+      reportType === "blood_pressure"
+        ? ([
+            {
+              name: "Systolic Blood Pressure",
+              value: Number(bloodPressure.systolic.trim()),
+              unit: "mmHg",
+            },
+            {
+              name: "Diastolic Blood Pressure",
+              value: Number(bloodPressure.diastolic.trim()),
+              unit: "mmHg",
+            },
+            {
+              name: "Pulse",
+              value: Number(bloodPressure.pulse.trim()),
+              unit: "bpm",
+            },
+          ] satisfies AdditionalBiomarker[])
+        : additionalBiomarkers.reduce<AdditionalBiomarker[]>((acc, item) => {
+            const name = item.name.trim();
+            const value = Number(item.value.trim());
+            const mappedKey = item.mappedKey ?? inferMappedKey(name);
+            if (!name || !Number.isFinite(value)) {
+              return acc;
+            }
 
-      acc.push({
-        name,
-        value,
-        mappedKey,
-        unit: item.unit.trim() || undefined,
-        referenceRange: item.referenceRange.trim() || undefined,
-        status: item.status.trim() || undefined,
-      });
-      return acc;
-    }, []);
+            acc.push({
+              name,
+              value,
+              mappedKey,
+              unit: item.unit.trim() || undefined,
+              referenceRange: item.referenceRange.trim() || undefined,
+              status: item.status.trim() || undefined,
+            });
+            return acc;
+          }, []);
 
-    const coreBiomarkers = additionalPayload.reduce<LabReport["biomarkers"]>((acc, item) => {
-      if (!item.mappedKey) return acc;
-      if (typeof acc[item.mappedKey] === "number") return acc;
-      acc[item.mappedKey] = item.value;
-      return acc;
-    }, {});
+    const coreBiomarkers =
+      reportType === "blood_pressure"
+        ? {}
+        : additionalPayload.reduce<LabReport["biomarkers"]>((acc, item) => {
+            if (!item.mappedKey) return acc;
+            if (typeof acc[item.mappedKey] === "number") return acc;
+            acc[item.mappedKey] = item.value;
+            return acc;
+          }, {});
 
     const report: LabReport = {
       id: makeId("report"),
       dateISO,
+      reportType,
       biomarkers: coreBiomarkers,
       additionalBiomarkers: additionalPayload.length ? additionalPayload : undefined,
       notes: notes.trim() || undefined,
@@ -238,90 +301,153 @@ export default function NewReportPage() {
             onChange={(e) => setDateISO(e.target.value)}
           />
 
-          <section className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Import From File</h2>
-              <p className="mt-1 text-xs text-[var(--ink-soft)]">
-                Upload an image, PDF, or text report to parse biomarker rows.
-              </p>
-            </div>
-            <label htmlFor="report-upload" className="block space-y-1.5">
-              <span className="text-sm font-medium text-[var(--ink-soft)]">Report File</span>
-              <input
-                id="report-upload"
-                type="file"
-                accept="image/*,.pdf,.txt,.csv,.tsv,.json,.xml"
-                onChange={onFileUpload}
-                disabled={uploading || loading}
-                className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface)] file:px-3 file:py-1.5 file:text-xs file:font-semibold motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
-              />
-            </label>
-            {uploading ? <p className="text-sm text-[var(--ink-soft)]">Extracting report values...</p> : null}
-            {uploadMessage ? <p className="text-sm text-emerald-700">{uploadMessage}</p> : null}
-            {uploadError ? <p className="text-sm text-[var(--danger)]">{uploadError}</p> : null}
-            {uploadedFileName ? <p className="text-xs text-[var(--ink-soft)]">Source: {uploadedFileName}</p> : null}
-            {extractionWarnings.length > 0 ? (
-              <ul className="list-disc space-y-1 pl-5 text-xs text-[var(--ink-soft)]">
-                {extractionWarnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
+          <label htmlFor="report-type" className="block space-y-1.5">
+            <span className="text-sm font-medium text-[var(--ink-soft)]">Input Type</span>
+            <select
+              id="report-type"
+              value={reportType}
+              onChange={(e) => {
+                const nextType = e.target.value as NonNullable<LabReport["reportType"]>;
+                setReportType(nextType);
+                setFormError("");
+              }}
+              className="h-10 w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--ink)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+            >
+              <option value="blood_report">Blood Report</option>
+              <option value="blood_pressure">Blood Pressure Monitor</option>
+            </select>
+          </label>
 
-          <section className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Biomarkers</h2>
-              <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={addAdditionalBiomarkerRow}>
-                Add Row
-              </Button>
-            </div>
-            {additionalBiomarkers.length === 0 ? (
-              <p className="text-sm text-[var(--ink-soft)]">
-                No biomarkers yet. Upload a report or add rows manually.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {additionalBiomarkers.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Input
-                        id={`${item.id}-name`}
-                        label="Biomarker Name"
-                        value={item.name}
-                        onChange={(event) => updateAdditionalBiomarker(item.id, { name: event.target.value })}
-                      />
-                      <Input
-                        id={`${item.id}-value`}
-                        label="Value"
-                        type="number"
-                        step="any"
-                        inputMode="decimal"
-                        value={item.value}
-                        error={additionalErrors[item.id]}
-                        onChange={(event) => updateAdditionalBiomarker(item.id, { value: event.target.value })}
-                      />
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-soft)]">
-                      {item.unit ? <span>Unit: {item.unit}</span> : null}
-                      {item.referenceRange ? <span>Range: {item.referenceRange}</span> : null}
-                      {item.status ? <span>Status: {item.status}</span> : null}
-                    </div>
-                    <div className="mt-3">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-8 px-3 text-xs"
-                        onClick={() => removeAdditionalBiomarkerRow(item.id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
+          {reportType === "blood_report" ? (
+            <>
+              <section className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Import From File</h2>
+                  <p className="mt-1 text-xs text-[var(--ink-soft)]">
+                    Upload an image, PDF, or text report to parse biomarker rows.
+                  </p>
+                </div>
+                <label htmlFor="report-upload" className="block space-y-1.5">
+                  <span className="text-sm font-medium text-[var(--ink-soft)]">Report File</span>
+                  <input
+                    id="report-upload"
+                    type="file"
+                    accept="image/*,.pdf,.txt,.csv,.tsv,.json,.xml"
+                    onChange={onFileUpload}
+                    disabled={uploading || loading}
+                    className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface)] file:px-3 file:py-1.5 file:text-xs file:font-semibold motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                  />
+                </label>
+                {uploading ? <p className="text-sm text-[var(--ink-soft)]">Extracting report values...</p> : null}
+                {uploadMessage ? <p className="text-sm text-emerald-700">{uploadMessage}</p> : null}
+                {uploadError ? <p className="text-sm text-[var(--danger)]">{uploadError}</p> : null}
+                {uploadedFileName ? <p className="text-xs text-[var(--ink-soft)]">Source: {uploadedFileName}</p> : null}
+                {extractionWarnings.length > 0 ? (
+                  <ul className="list-disc space-y-1 pl-5 text-xs text-[var(--ink-soft)]">
+                    {extractionWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+
+              <section className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Biomarkers</h2>
+                  <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={addAdditionalBiomarkerRow}>
+                    Add Row
+                  </Button>
+                </div>
+                {additionalBiomarkers.length === 0 ? (
+                  <p className="text-sm text-[var(--ink-soft)]">
+                    No biomarkers yet. Upload a report or add rows manually.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {additionalBiomarkers.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Input
+                            id={`${item.id}-name`}
+                            label="Biomarker Name"
+                            value={item.name}
+                            onChange={(event) => updateAdditionalBiomarker(item.id, { name: event.target.value })}
+                          />
+                          <Input
+                            id={`${item.id}-value`}
+                            label="Value"
+                            type="number"
+                            step="any"
+                            inputMode="decimal"
+                            value={item.value}
+                            error={additionalErrors[item.id]}
+                            onChange={(event) => updateAdditionalBiomarker(item.id, { value: event.target.value })}
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-soft)]">
+                          {item.unit ? <span>Unit: {item.unit}</span> : null}
+                          {item.referenceRange ? <span>Range: {item.referenceRange}</span> : null}
+                          {item.status ? <span>Status: {item.status}</span> : null}
+                        </div>
+                        <div className="mt-3">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-8 px-3 text-xs"
+                            onClick={() => removeAdditionalBiomarkerRow(item.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </section>
+            </>
+          ) : (
+            <section className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[var(--ink-soft)]">Blood Pressure Inputs</h2>
+                <p className="mt-1 text-xs text-[var(--ink-soft)]">Enter Sys, Dia, and Pul values from your monitor reading.</p>
               </div>
-            )}
-          </section>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Input
+                  label="Systolic (Sys)"
+                  type="number"
+                  inputMode="decimal"
+                  value={bloodPressure.systolic}
+                  error={bloodPressureErrors.systolic}
+                  onChange={(e) => {
+                    setBloodPressure((prev) => ({ ...prev, systolic: e.target.value }));
+                    setBloodPressureErrors((prev) => ({ ...prev, systolic: undefined }));
+                  }}
+                />
+                <Input
+                  label="Diastolic (Dia)"
+                  type="number"
+                  inputMode="decimal"
+                  value={bloodPressure.diastolic}
+                  error={bloodPressureErrors.diastolic}
+                  onChange={(e) => {
+                    setBloodPressure((prev) => ({ ...prev, diastolic: e.target.value }));
+                    setBloodPressureErrors((prev) => ({ ...prev, diastolic: undefined }));
+                  }}
+                />
+                <Input
+                  label="Pulse (Pul)"
+                  type="number"
+                  inputMode="decimal"
+                  value={bloodPressure.pulse}
+                  error={bloodPressureErrors.pulse}
+                  onChange={(e) => {
+                    setBloodPressure((prev) => ({ ...prev, pulse: e.target.value }));
+                    setBloodPressureErrors((prev) => ({ ...prev, pulse: undefined }));
+                  }}
+                />
+              </div>
+            </section>
+          )}
 
           <label htmlFor="report-notes" className="block space-y-1.5">
             <span className="text-sm font-medium text-[var(--ink-soft)]">Notes</span>

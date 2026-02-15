@@ -26,6 +26,7 @@ export interface Biomarkers {
 export interface LabReport {
   id: string;
   dateISO: string;
+  reportType?: "blood_report" | "blood_pressure";
   biomarkers: Biomarkers;
   additionalBiomarkers?: AdditionalBiomarker[];
   notes?: string;

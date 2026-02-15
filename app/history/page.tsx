@@ -90,11 +90,17 @@ export default function HistoryPage() {
             const showAll = expanded[report.id] ?? false;
             const visibleBadges = showAll ? badges : badges.slice(0, 3);
             const moreCount = badges.length > 3 ? badges.length - 3 : 0;
+            const typeLabel = report.reportType === "blood_pressure" ? "Blood Pressure" : "Blood Report";
             return (
               <Card key={report.id} className="bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] p-5">
                 <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold">{formatDate(report.dateISO)}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold">{formatDate(report.dateISO)}</p>
+                      <span className="inline-flex h-6 items-center rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-2.5 text-xs font-semibold text-[var(--ink-soft)]">
+                        {typeLabel}
+                      </span>
+                    </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {visibleBadges.length > 0 ? (
                         visibleBadges.map((badge) => (
