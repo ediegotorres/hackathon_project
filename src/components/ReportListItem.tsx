@@ -8,30 +8,54 @@ import { formatDate } from "@/src/lib/utils";
 export function ReportListItem({ report }: { report: LabReport }) {
   const coreBiomarkers = resolveCoreBiomarkers(report);
   const coreEntries = [
-    ["Total Chol", coreBiomarkers.totalChol, "mg/dL"],
-    ["LDL", coreBiomarkers.ldl, "mg/dL"],
-    ["HDL", coreBiomarkers.hdl, "mg/dL"],
-    ["Triglycerides", coreBiomarkers.triglycerides, "mg/dL"],
-    ["Glucose", coreBiomarkers.glucose, "mg/dL"],
-    ["A1c", coreBiomarkers.a1c, "%"],
+    ["Cholesterol", coreBiomarkers.Cholesterol, "mg/dL"],
+    ["Glucose", coreBiomarkers.Glucose, "mg/dL"],
+    ["Haemoglobin", coreBiomarkers.Haemoglobin, "g/dL"],
+    ["Creatinine", coreBiomarkers.Creatinine, "mg/dL"],
+    ["TSH", coreBiomarkers.TSH, "mIU/L"],
+    ["ALT", coreBiomarkers.ALT, "U/L"],
+    ["Urea", coreBiomarkers.Urea, "mg/dL"],
+    ["AST", coreBiomarkers.AST, "U/L"],
+    ["ALP", coreBiomarkers.ALP, "U/L"],
+    ["Bilirubin", coreBiomarkers.Bilirubin, "mg/dL"],
+    ["Albumin", coreBiomarkers.Albumin, "g/dL"],
+    ["GFR", coreBiomarkers.GFR, "mL/min"],
+    ["BUN", coreBiomarkers.BUN, "mg/dL"],
+    ["Sodium", coreBiomarkers.Sodium, "mEq/L"],
+    ["Potassium", coreBiomarkers.Potassium, "mEq/L"],
+    ["Calcium", coreBiomarkers.Calcium, "mg/dL"],
+    ["FT4", coreBiomarkers.FT4, "ng/dL"],
+    ["Red Blood Cell Count", coreBiomarkers.redBloodCellCount, "million cells/mcL"],
   ].filter((entry) => typeof entry[1] === "number") as Array<[string, number, string]>;
 
   const coreKeysWithValues = new Set(coreEntries.map(([label]) => label));
   const extraEntries = (report.additionalBiomarkers ?? [])
     .filter((item) => {
       if (!item.mappedKey) return true;
-      if (item.mappedKey === "totalChol") return !coreKeysWithValues.has("Total Chol");
-      if (item.mappedKey === "ldl") return !coreKeysWithValues.has("LDL");
-      if (item.mappedKey === "hdl") return !coreKeysWithValues.has("HDL");
-      if (item.mappedKey === "triglycerides") return !coreKeysWithValues.has("Triglycerides");
-      if (item.mappedKey === "glucose") return !coreKeysWithValues.has("Glucose");
-      if (item.mappedKey === "a1c") return !coreKeysWithValues.has("A1c");
-      return true;
+      const mappedLabel = item.mappedKey === "Cholesterol" ? "Cholesterol" :
+        item.mappedKey === "Glucose" ? "Glucose" :
+        item.mappedKey === "Haemoglobin" ? "Haemoglobin" :
+        item.mappedKey === "Creatinine" ? "Creatinine" :
+        item.mappedKey === "TSH" ? "TSH" :
+        item.mappedKey === "ALT" ? "ALT" :
+        item.mappedKey === "Urea" ? "Urea" :
+        item.mappedKey === "AST" ? "AST" :
+        item.mappedKey === "ALP" ? "ALP" :
+        item.mappedKey === "Bilirubin" ? "Bilirubin" :
+        item.mappedKey === "Albumin" ? "Albumin" :
+        item.mappedKey === "GFR" ? "GFR" :
+        item.mappedKey === "BUN" ? "BUN" :
+        item.mappedKey === "Sodium" ? "Sodium" :
+        item.mappedKey === "Potassium" ? "Potassium" :
+        item.mappedKey === "Calcium" ? "Calcium" :
+        item.mappedKey === "FT4" ? "FT4" :
+        item.mappedKey === "redBloodCellCount" ? "Red Blood Cell Count" : null;
+      return !mappedLabel || !coreKeysWithValues.has(mappedLabel);
     })
     .map((item) => [item.name, item.value, item.unit ?? ""] as [string, number, string]);
 
   const allEntries = [...coreEntries, ...extraEntries];
-  const previewEntries = allEntries.slice(0, 4);
+  const previewEntries = allEntries.slice(0, 6);
   const remainingCount = Math.max(0, allEntries.length - previewEntries.length);
 
   return (

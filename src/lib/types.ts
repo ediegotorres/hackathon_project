@@ -15,12 +15,24 @@ export interface UserProfile {
 }
 
 export interface Biomarkers {
-  totalChol?: number;
-  ldl?: number;
-  hdl?: number;
-  triglycerides?: number;
-  glucose?: number;
-  a1c?: number;
+  redBloodCellCount?: number;
+  Haemoglobin?: number;
+  Glucose?: number;
+  Creatinine?: number;
+  Urea?: number;
+  Cholesterol?: number;
+  ALT?: number;
+  AST?: number;
+  ALP?: number;
+  Bilirubin?: number;
+  Albumin?: number;
+  GFR?: number;
+  BUN?: number;
+  Sodium?: number;
+  Potassium?: number;
+  Calcium?: number;
+  TSH?: number;
+  FT4?: number;
 }
 
 export interface LabReport {

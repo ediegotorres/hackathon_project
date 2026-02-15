@@ -17,12 +17,24 @@ import { formatDate, makeId } from "@/src/lib/utils";
 type MarkerKey = keyof Biomarkers;
 
 const markerDefs: Array<{ key: MarkerKey; label: string; unit: string }> = [
-  { key: "ldl", label: "LDL", unit: "mg/dL" },
-  { key: "hdl", label: "HDL", unit: "mg/dL" },
-  { key: "totalChol", label: "Total Chol", unit: "mg/dL" },
-  { key: "triglycerides", label: "TG", unit: "mg/dL" },
-  { key: "glucose", label: "Glucose", unit: "mg/dL" },
-  { key: "a1c", label: "A1C", unit: "%" },
+  { key: "redBloodCellCount", label: "RBC Count", unit: "million cells/mcL" },
+  { key: "Haemoglobin", label: "Haemoglobin", unit: "g/dL" },
+  { key: "Glucose", label: "Glucose", unit: "mg/dL" },
+  { key: "Creatinine", label: "Creatinine", unit: "mg/dL" },
+  { key: "Urea", label: "Urea", unit: "mg/dL" },
+  { key: "Cholesterol", label: "Cholesterol", unit: "mg/dL" },
+  { key: "ALT", label: "ALT", unit: "U/L" },
+  { key: "AST", label: "AST", unit: "U/L" },
+  { key: "ALP", label: "ALP", unit: "U/L" },
+  { key: "Bilirubin", label: "Bilirubin", unit: "mg/dL" },
+  { key: "Albumin", label: "Albumin", unit: "g/dL" },
+  { key: "GFR", label: "GFR", unit: "mL/min" },
+  { key: "BUN", label: "BUN", unit: "mg/dL" },
+  { key: "Sodium", label: "Sodium", unit: "mEq/L" },
+  { key: "Potassium", label: "Potassium", unit: "mEq/L" },
+  { key: "Calcium", label: "Calcium", unit: "mg/dL" },
+  { key: "TSH", label: "TSH", unit: "mIU/L" },
+  { key: "FT4", label: "FT4", unit: "ng/dL" },
 ];
 
 type MarkerCardStatus = "high" | "borderline" | "normal" | "low" | "neutral";

@@ -4,9 +4,10 @@ type BiomarkerDef = {
   key: keyof Biomarkers;
   label: string;
   unit: string;
-  highAt: number;
-  borderlineAt: number;
-  inverse?: boolean;
+  normalMin?: number;
+  normalMax?: number;
+  lowAt?: number;
+  highAt?: number;
   rangeText: string;
   meaning: string;
   questions: string[];
@@ -14,83 +15,190 @@ type BiomarkerDef = {
 
 const biomarkerDefs: BiomarkerDef[] = [
   {
-    key: "totalChol",
-    label: "Total Cholesterol",
-    unit: "mg/dL",
-    highAt: 240,
-    borderlineAt: 200,
-    rangeText: "Optimal < 200, Borderline 200-239, High >= 240",
-    meaning: "Tracks overall cholesterol burden.",
-    questions: ["Should I adjust dietary fat quality?", "Do I need repeat lipid testing?"],
+    key: "redBloodCellCount",
+    label: "Red Blood Cell Count",
+    unit: "million cells/mcL",
+    normalMin: 4.0,
+    normalMax: 5.5,
+    rangeText: "Normal: 4.0-5.5 million cells/mcL",
+    meaning: "Measures oxygen-carrying red blood cells.",
+    questions: ["Am I showing signs of anemia?", "Could low RBC affect my energy levels?"],
   },
   {
-    key: "ldl",
-    label: "LDL",
-    unit: "mg/dL",
-    highAt: 160,
-    borderlineAt: 130,
-    rangeText: "Optimal < 130, Borderline 130-159, High >= 160",
-    meaning: "Higher LDL can increase long-term cardiovascular risk.",
-    questions: ["Would a repeat fasting panel help?", "How aggressive should LDL reduction be?"],
+    key: "Haemoglobin",
+    label: "Haemoglobin",
+    unit: "g/dL",
+    normalMin: 12.0,
+    normalMax: 17.5,
+    rangeText: "Normal: 12.0-17.5 g/dL",
+    meaning: "Protein in red blood cells that carries oxygen.",
+    questions: ["Is my hemoglobin consistent with my activity level?", "Should I track this for athletic performance?"],
   },
   {
-    key: "hdl",
-    label: "HDL",
-    unit: "mg/dL",
-    highAt: 40,
-    borderlineAt: 50,
-    inverse: true,
-    rangeText: "Lower is generally less protective. Goal >= 50",
-    meaning: "HDL is one marker related to lipid transport.",
-    questions: ["How can activity and nutrition improve HDL?", "Should I track this quarterly?"],
-  },
-  {
-    key: "triglycerides",
-    label: "Triglycerides",
-    unit: "mg/dL",
-    highAt: 200,
-    borderlineAt: 150,
-    rangeText: "Optimal < 150, Borderline 150-199, High >= 200",
-    meaning: "Can reflect metabolic and dietary patterns.",
-    questions: ["Could refined carbs be affecting this value?", "Should I check insulin resistance markers?"],
-  },
-  {
-    key: "glucose",
+    key: "Glucose",
     label: "Glucose",
     unit: "mg/dL",
-    highAt: 126,
+    normalMax: 100,
     borderlineAt: 100,
-    rangeText: "Typical fasting target < 100, Borderline 100-125, High >= 126",
-    meaning: "Helps monitor blood sugar trends.",
-    questions: ["Should I pair this with continuous monitoring?", "What lifestyle targets matter most?"],
+    highAt: 126,
+    rangeText: "Normal: < 100, Borderline: 100-125, High: >= 126",
+    meaning: "Fasting blood sugar reflects glucose control.",
+    questions: ["Should I monitor postprandial glucose?", "What lifestyle impacts this most?"],
   },
   {
-    key: "a1c",
-    label: "Hemoglobin A1c",
-    unit: "%",
-    highAt: 6.5,
-    borderlineAt: 5.7,
-    rangeText: "Typical target < 5.7, Borderline 5.7-6.4, High >= 6.5",
-    meaning: "Represents average blood glucose over ~3 months.",
-    questions: ["How often should I re-test A1c?", "What is my realistic A1c target?"],
+    key: "Creatinine",
+    label: "Creatinine",
+    unit: "mg/dL",
+    normalMax: 1.2,
+    rangeText: "Normal: < 1.2 mg/dL",
+    meaning: "Kidney function marker - waste product clearance.",
+    questions: ["Is my kidney function stable?", "Should I monitor hydration?"],
+  },
+  {
+    key: "Urea",
+    label: "Urea",
+    unit: "mg/dL",
+    normalMax: 23,
+    rangeText: "Normal: < 23 mg/dL",
+    meaning: "Another kidney function indicator.",
+    questions: ["How does protein intake affect urea?", "Should I adjust hydration?"],
+  },
+  {
+    key: "Cholesterol",
+    label: "Cholesterol",
+    unit: "mg/dL",
+    normalMax: 200,
+    borderlineAt: 200,
+    highAt: 240,
+    rangeText: "Normal: < 200, Borderline: 200-239, High: >= 240",
+    meaning: "Total cholesterol reflects overall lipid burden.",
+    questions: ["Should I focus on dietary cholesterol?", "What is my cardiovascular risk?"],
+  },
+  {
+    key: "ALT",
+    label: "ALT (Alanine Aminotransferase)",
+    unit: "U/L",
+    normalMax: 40,
+    rangeText: "Normal: < 40 U/L",
+    meaning: "Liver enzyme - elevated can indicate liver stress.",
+    questions: ["Is my liver function normal?", "Could medications affect this?"],
+  },
+  {
+    key: "AST",
+    label: "AST (Aspartate Aminotransferase)",
+    unit: "U/L",
+    normalMax: 40,
+    rangeText: "Normal: < 40 U/L",
+    meaning: "Another liver enzyme related to liver health.",
+    questions: ["What does AST:ALT ratio tell me?", "Should I be concerned about liver inflammation?"],
+  },
+  {
+    key: "ALP",
+    label: "ALP (Alkaline Phosphatase)",
+    unit: "U/L",
+    normalMax: 120,
+    rangeText: "Normal: < 120 U/L",
+    meaning: "Enzyme from liver, bones, and other tissues.",
+    questions: ["What is driving my ALP level?", "Could this indicate bone turnover?"],
+  },
+  {
+    key: "Bilirubin",
+    label: "Bilirubin",
+    unit: "mg/dL",
+    normalMax: 1.2,
+    rangeText: "Normal: < 1.2 mg/dL",
+    meaning: "Bile pigment - elevated may indicate liver or hemolysis issues.",
+    questions: ["Is my liver processing bile correctly?", "Could hemolysis be involved?"],
+  },
+  {
+    key: "Albumin",
+    label: "Albumin",
+    unit: "g/dL",
+    normalMin: 3.5,
+    normalMax: 5.0,
+    rangeText: "Normal: 3.5-5.0 g/dL",
+    meaning: "Major plasma protein affecting osmotic pressure and nutrient transport.",
+    questions: ["Is my protein status adequate?", "Could malnutrition be a factor?"],
+  },
+  {
+    key: "GFR",
+    label: "GFR (Glomerular Filtration Rate)",
+    unit: "mL/min",
+    normalMin: 60,
+    rangeText: "Normal: >= 60 mL/min",
+    meaning: "Kidney filtration rate - lower suggests reduced kidney function.",
+    questions: ["What is my kidney disease risk category?", "Should I modify my diet?"],
+  },
+  {
+    key: "BUN",
+    label: "BUN (Blood Urea Nitrogen)",
+    unit: "mg/dL",
+    normalMax: 23,
+    rangeText: "Normal: < 23 mg/dL",
+    meaning: "Related to protein metabolism and kidney function.",
+    questions: ["How does my protein intake affect BUN?", "Is hydration affecting this?"],
+  },
+  {
+    key: "Sodium",
+    label: "Sodium",
+    unit: "mEq/L",
+    normalMin: 136,
+    normalMax: 145,
+    rangeText: "Normal: 136-145 mEq/L",
+    meaning: "Electrolyte critical for nerve and muscle function.",
+    questions: ["Is my hydration status adequate?", "Am I losing electrolytes through sweat?"],
+  },
+  {
+    key: "Potassium",
+    label: "Potassium",
+    unit: "mEq/L",
+    normalMin: 3.5,
+    normalMax: 5.0,
+    rangeText: "Normal: 3.5-5.0 mEq/L",
+    meaning: "Electrolyte essential for heart rhythm and muscle function.",
+    questions: ["Should I monitor potassium with medications?", "How does exercise affect this?"],
+  },
+  {
+    key: "Calcium",
+    label: "Calcium",
+    unit: "mg/dL",
+    normalMin: 8.5,
+    normalMax: 10.2,
+    rangeText: "Normal: 8.5-10.2 mg/dL",
+    meaning: "Mineral critical for bones, heart, and nerve function.",
+    questions: ["Is my vitamin D intake adequate?", "Should I monitor bone health?"],
+  },
+  {
+    key: "TSH",
+    label: "TSH (Thyroid Stimulating Hormone)",
+    unit: "mIU/L",
+    normalMin: 0.5,
+    normalMax: 2.5,
+    rangeText: "Normal: 0.5-2.5 mIU/L",
+    meaning: "Pituitary hormone controlling thyroid - indicates thyroid function.",
+    questions: ["Should I check free T3 and T4?", "Am I experiencing thyroid-related symptoms?"],
+  },
+  {
+    key: "FT4",
+    label: "FT4 (Free Thyroxine)",
+    unit: "ng/dL",
+    normalMin: 0.8,
+    normalMax: 1.8,
+    rangeText: "Normal: 0.8-1.8 ng/dL",
+    meaning: "Active thyroid hormone affecting metabolism and energy.",
+    questions: ["How do TSH and FT4 correlate for me?", "Should I adjust thyroid medication?"],
   },
 ];
 
 function statusForValue(value: number, def: BiomarkerDef): Status {
-  if (def.inverse) {
-    if (value < def.highAt) return "high";
-    if (value < def.borderlineAt) return "borderline";
-    return "normal";
-  }
-
-  if (value >= def.highAt) return "high";
-  if (value >= def.borderlineAt) return "borderline";
-  return "normal";
-}
-
-function scoreStatus(value: number, normalMax: number, borderlineMax: number): Status {
-  if (value > borderlineMax) return "high";
-  if (value > normalMax) return "borderline";
+  // Check high threshold first
+  if (def.highAt !== undefined && value >= def.highAt) return "high";
+  // Check low threshold
+  if (def.lowAt !== undefined && value <= def.lowAt) return "high";
+  // Check borderline high
+  if (def.normalMax !== undefined && value > def.normalMax) return "borderline";
+  // Check borderline low
+  if (def.normalMin !== undefined && value < def.normalMin) return "borderline";
   return "normal";
 }
 
@@ -106,7 +214,7 @@ export function generateMockAnalysis(report: LabReport, profile?: UserProfile | 
       ].filter(Boolean) as string[];
 
       return {
-        key: def.key,
+        key: def.key as string,
         label: def.label,
         value: Number(value.toFixed(2)),
         unit: def.unit,
@@ -129,44 +237,6 @@ export function generateMockAnalysis(report: LabReport, profile?: UserProfile | 
     { highCount: 0, borderlineCount: 0, normalCount: 0 },
   );
 
-  const totalChol = report.biomarkers.totalChol;
-  const hdl = report.biomarkers.hdl;
-  const glucose = report.biomarkers.glucose;
-  const a1c = report.biomarkers.a1c;
-  const derived: AnalysisResult["derived"] = [];
-
-  if (typeof totalChol === "number" && typeof hdl === "number" && hdl > 0) {
-    const ratio = Number((totalChol / hdl).toFixed(2));
-    derived.push({
-      key: "tc_hdl_ratio",
-      label: "Total Chol / HDL Ratio",
-      value: ratio,
-      status: scoreStatus(ratio, 3.5, 5),
-    });
-  }
-
-  if (typeof totalChol === "number" && typeof hdl === "number") {
-    const nonHdl = Number((totalChol - hdl).toFixed(1));
-    derived.push({
-      key: "non_hdl",
-      label: "Non-HDL Cholesterol",
-      value: nonHdl,
-      unit: "mg/dL",
-      status: scoreStatus(nonHdl, 130, 160),
-    });
-  }
-
-  if (typeof glucose === "number" && typeof a1c === "number") {
-    const eAG = Number((28.7 * a1c - 46.7).toFixed(1));
-    derived.push({
-      key: "estimated_avg_glucose",
-      label: "Estimated Avg Glucose",
-      value: eAG,
-      unit: "mg/dL",
-      status: scoreStatus(eAG, 117, 140),
-    });
-  }
-
   const summaryText =
     counts.highCount > 0
       ? "Some biomarkers are elevated. Treat this as educational trend tracking and review with a clinician."
@@ -177,7 +247,7 @@ export function generateMockAnalysis(report: LabReport, profile?: UserProfile | 
   return {
     overall: counts,
     biomarkers: biomarkerItems,
-    derived,
+    derived: [],
     summaryText,
     nextSteps: [
       "Repeat labs on a clinician-recommended schedule.",

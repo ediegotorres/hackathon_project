@@ -31,12 +31,24 @@ function profileCompleteness(profile: UserProfile | null) {
 }
 
 const coreMarkerMeta: Record<keyof LabReport["biomarkers"], { label: string; unit?: string }> = {
-  ldl: { label: "LDL", unit: "mg/dL" },
-  hdl: { label: "HDL", unit: "mg/dL" },
-  totalChol: { label: "Total Chol", unit: "mg/dL" },
-  triglycerides: { label: "Triglycerides", unit: "mg/dL" },
-  glucose: { label: "Glucose", unit: "mg/dL" },
-  a1c: { label: "A1C", unit: "%" },
+  redBloodCellCount: { label: "RBC Count", unit: "million cells/mcL" },
+  Haemoglobin: { label: "Haemoglobin", unit: "g/dL" },
+  Glucose: { label: "Glucose", unit: "mg/dL" },
+  Creatinine: { label: "Creatinine", unit: "mg/dL" },
+  Urea: { label: "Urea", unit: "mg/dL" },
+  Cholesterol: { label: "Cholesterol", unit: "mg/dL" },
+  ALT: { label: "ALT", unit: "U/L" },
+  AST: { label: "AST", unit: "U/L" },
+  ALP: { label: "ALP", unit: "U/L" },
+  Bilirubin: { label: "Bilirubin", unit: "mg/dL" },
+  Albumin: { label: "Albumin", unit: "g/dL" },
+  GFR: { label: "GFR", unit: "mL/min" },
+  BUN: { label: "BUN", unit: "mg/dL" },
+  Sodium: { label: "Sodium", unit: "mEq/L" },
+  Potassium: { label: "Potassium", unit: "mEq/L" },
+  Calcium: { label: "Calcium", unit: "mg/dL" },
+  TSH: { label: "TSH", unit: "mIU/L" },
+  FT4: { label: "FT4", unit: "ng/dL" },
 };
 
 const chartPalette = ["#0f766e", "#14b8a6", "#0ea5e9", "#6366f1", "#f59e0b", "#e11d48", "#84cc16", "#f97316"];

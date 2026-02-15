@@ -4,6 +4,8 @@ const PROFILE_KEY = "lablens.profile";
 const REPORTS_KEY = "lablens.reports";
 const ANALYSIS_PREFIX = "lablens.analysis.";
 const DEMO_MODE_KEY = "lablens.demoMode";
+const SCHEMA_VERSION_KEY = "lablens.schemaVersion";
+const CURRENT_SCHEMA_VERSION = "3.0"; // Increment to force data refresh
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -18,8 +20,24 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
+function checkSchemaVersion() {
+  if (!isBrowser()) return;
+  const version = window.localStorage.getItem(SCHEMA_VERSION_KEY);
+  if (version !== CURRENT_SCHEMA_VERSION) {
+    // Preserve demo mode before clearing
+    const wasDemoMode = window.localStorage.getItem(DEMO_MODE_KEY);
+    clearLabLensData();
+    // Restore demo mode if it was active
+    if (wasDemoMode === "sample") {
+      window.localStorage.setItem(DEMO_MODE_KEY, "sample");
+    }
+    window.localStorage.setItem(SCHEMA_VERSION_KEY, CURRENT_SCHEMA_VERSION);
+  }
+}
+
 export function loadProfile(): UserProfile | null {
   if (!isBrowser()) return null;
+  checkSchemaVersion();
   return safeParse<UserProfile | null>(window.localStorage.getItem(PROFILE_KEY), null);
 }
 
@@ -30,6 +48,7 @@ export function saveProfile(profile: UserProfile) {
 
 export function loadReports(): LabReport[] {
   if (!isBrowser()) return [];
+  checkSchemaVersion();
   const reports = safeParse<LabReport[]>(window.localStorage.getItem(REPORTS_KEY), []);
   return reports.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
 }
