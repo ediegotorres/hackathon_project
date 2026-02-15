@@ -22,9 +22,12 @@ function isActive(pathname: string, href: string) {
 }
 
 function getInitialDemoState() {
+  if (typeof window === "undefined") {
+    return { demoMode: "none" as const, demoVisualEnabled: false };
+  }
+
   const persistedMode = loadDemoMode();
-  const persistedVisual =
-    typeof window !== "undefined" && window.localStorage.getItem(DEMO_VISUAL_KEY) === "true";
+  const persistedVisual = window.localStorage.getItem(DEMO_VISUAL_KEY) === "true";
 
   if (!persistedVisual && persistedMode === "sample") {
     clearLabLensData();
@@ -38,26 +41,29 @@ function getInitialDemoState() {
   };
 }
 
-function getInitialTheme() {
-  if (typeof window === "undefined") return "light" as const;
-  return window.localStorage.getItem(THEME_KEY) === "dark" ? ("dark" as const) : ("light" as const);
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPath, setMenuPath] = useState(pathname);
-  const [initialDemoState] = useState(getInitialDemoState);
-  const [demoMode, setDemoMode] = useState<"sample" | "none">(initialDemoState.demoMode);
-  const [demoVisualEnabled, setDemoVisualEnabled] = useState(initialDemoState.demoVisualEnabled);
+  const [demoMode, setDemoMode] = useState<"sample" | "none">("none");
+  const [demoVisualEnabled, setDemoVisualEnabled] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const isDemoActive = demoVisualEnabled && demoMode === "sample";
   const isMenuOpen = menuOpen && menuPath === pathname;
 
   useEffect(() => {
     document.documentElement.classList.toggle("theme-dark", theme === "dark");
   }, [theme]);
+
+  useEffect(() => {
+    const initialState = getInitialDemoState();
+    setDemoMode(initialState.demoMode);
+    setDemoVisualEnabled(initialState.demoVisualEnabled);
+    const nextTheme = window.localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+    setTheme(nextTheme);
+    document.documentElement.classList.toggle("theme-dark", nextTheme === "dark");
+  }, []);
 
   useEffect(() => {
     const onStorageChange = (event: StorageEvent) => {
