@@ -29,6 +29,13 @@ const NOISE_LINES = new Set([
   "RESULT STATUS",
 ]);
 
+const SECTION_HEADING_TOKENS = new Set([
+  "completebloodcount",
+  "rbcindices",
+  "platelets",
+  "peripheralbloodsmear",
+]);
+
 const TEST_ALIASES: Record<string, string[]> = {
   "White Blood Cell Count": ["white blood cell count", "wbc"],
   "Red Blood Cell Count": ["red blood cell count", "rbc"],
@@ -96,7 +103,7 @@ const PANEL_BY_TEST: Record<string, string> = {
 const EXPECTED_UNIT_PATTERNS: Record<string, RegExp[]> = {
   "White Blood Cell Count": [/10\^3\/uL/i, /10\^9\/L/i],
   "Red Blood Cell Count": [/10\^6\/uL/i, /10\^12\/L/i],
-  Hemoglobin: [/g\/dL/i],
+  Hemoglobin: [/g\/dL/i, /g%/i],
   Hematocrit: [/%/],
   "Platelet Count": [/10\^3\/uL/i, /10\^9\/L/i],
   Glucose: [/mg\/dL/i],
@@ -110,7 +117,7 @@ const EXPECTED_UNIT_PATTERNS: Record<string, RegExp[]> = {
   Albumin: [/g\/dL/i],
   "Mean Corpuscular Volume (MCV)": [/fl/i],
   "Mean Corpuscular Hemoglobin (MCH)": [/pg/i],
-  "Mean Corpuscular Hemoglobin Concentration (MCHC)": [/g\/dL/i],
+  "Mean Corpuscular Hemoglobin Concentration (MCHC)": [/g\/dL/i, /%/],
   "Red Cell Distribution Width CV (RDW-CV)": [/%/],
   "Red Cell Distribution Width SD (RDW-SD)": [/fl/i],
   "Neutrophils % (NEU%)": [/%/],
@@ -161,12 +168,9 @@ function extractBloodResults(rawText: string): BloodResultRow[] {
   const columnRows = parseColumnarRows(lines);
   const genericColumnRows = parseGenericColumnBlocks(lines);
   const primaryRows = dedupeRows([...inlineRows, ...columnRows, ...genericColumnRows]).filter(isPlausibleRow);
-  if (primaryRows.length >= 8) {
-    return consolidateRows(primaryRows);
-  }
-
   const sequentialRows = parseSequentialRows(lines);
-  return consolidateRows(dedupeRows([...primaryRows, ...sequentialRows]).filter(isPlausibleRow));
+  const mergedRows = dedupeRows([...primaryRows, ...sequentialRows]).filter(isPlausibleRow);
+  return consolidateRows(mergedRows);
 }
 
 function parseGenericColumnBlocks(lines: string[]): BloodResultRow[] {
@@ -229,6 +233,10 @@ function parseGenericColumnBlocks(lines: string[]): BloodResultRow[] {
     }
 
     if (!inTable) {
+      continue;
+    }
+
+    if (isMetadataLine(trimmed)) {
       continue;
     }
 
@@ -532,6 +540,15 @@ function isPlausibleRow(row: BloodResultRow): boolean {
   if (!row.test || !row.result) {
     return false;
   }
+  if (isMetadataLine(row.test) || isSectionHeading(row.test)) {
+    return false;
+  }
+  if (row.test.startsWith(":")) {
+    return false;
+  }
+  if (/\b\d+(\.\d+)?\s*-\s*\d+(\.\d+)?\b/.test(row.test)) {
+    return false;
+  }
   const latinChars = (row.test.match(/[A-Za-z]/g) ?? []).length;
   if (latinChars < 3) {
     return false;
@@ -614,7 +631,13 @@ function isLikelyTestName(value: string): boolean {
   if (!/[A-Za-z]/.test(v)) {
     return false;
   }
-  if (/^(name|age|gender|doctor|date|email|sample|results|verified by)$/i.test(v)) {
+  if (isMetadataLine(v) || isSectionHeading(v)) {
+    return false;
+  }
+  if (v.includes(":") && !canonicalizeKnownTest(v)) {
+    return false;
+  }
+  if (/\b\d+\s*years?\b/i.test(v)) {
     return false;
   }
   return true;
@@ -652,12 +675,27 @@ function isUnit(value: string): boolean {
   return (
     v === "%" ||
     /^x?10\^\d+\/[a-z0-9µμ]+$/i.test(v) ||
-    /^(mg\/dL|g\/dL|U\/L|mmol\/L|mL\/min(?:\/1\.73m²)?|ng\/dL|μIU\/mL|uIU\/mL|mm\/hr|fl|pg)$/i.test(v)
+    /^(mg\/dL|g\/dL|g%|U\/L|mmol\/L|mL\/min(?:\/1\.73m²)?|ng\/dL|μIU\/mL|uIU\/mL|mm\/hr|fl|pg|\/?cu\.?mm|cells\/cu\.?mm)$/i.test(
+      v,
+    )
   );
 }
 
 function isReferenceRange(value: string): boolean {
-  return /^\d+(\.\d+)?\s*-\s*\d+(\.\d+)?$/.test(value) || /^up to\s+\d+(\.\d+)?$/i.test(value);
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return false;
+  }
+  if (/^up to\s+\d+(\.\d+)?(?:\s*[a-z%/.\d]+)?$/i.test(normalized)) {
+    return true;
+  }
+  if (/^\d+(\.\d+)?\s*-\s*\d+(\.\d+)?(?:\s*[a-z%/.\d]+)?$/i.test(normalized)) {
+    return true;
+  }
+  if (/^(male|female)\s*[:\-]\s*\d+(\.\d+)?\s*-\s*\d+(\.\d+)?(?:\s*[a-z%/.\d]+)?$/i.test(normalized)) {
+    return true;
+  }
+  return /\b\d+(\.\d+)?\s*-\s*\d+(\.\d+)?\b/.test(normalized) && /[a-z%]/i.test(normalized);
 }
 
 function isResultValue(value: string): boolean {
@@ -708,7 +746,7 @@ function deriveStatus(result: string, referenceRange: string): string {
 
 function parseRange(value: string): { min: number; max: number } | null {
   const normalized = value.trim().toLowerCase();
-  const between = normalized.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+  const between = normalized.match(/(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)/);
   if (between) {
     return { min: Number(between[1]), max: Number(between[2]) };
   }
@@ -726,6 +764,38 @@ function extractFirstNumber(value: string): number | null {
     return null;
   }
   return Number(match[0]);
+}
+
+function isSectionHeading(value: string): boolean {
+  const token = normalizeToken(value);
+  if (token === "totalwbccount") {
+    return !/[a-z]/.test(value);
+  }
+  return SECTION_HEADING_TOKENS.has(token);
+}
+
+function isMetadataLine(value: string): boolean {
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return false;
+  }
+  if (/^[:\-]\s*[A-Za-z]/.test(compact)) {
+    return true;
+  }
+  if (/^(mr|mrs|ms|dr)\.?\s+/i.test(compact)) {
+    return true;
+  }
+  const token = normalizeToken(compact);
+  if (
+    /^(name|patientname|age|sex|gender|doctor|date|email|sample|results|verifiedby|labno|refbydr|refby|samplecollat)$/.test(
+      token,
+    )
+  ) {
+    return true;
+  }
+  return /^(lab\s*no|patient\s*name|ref\.?\s*by|sample\s*coll(?:ected)?\s*at|sex|gender|age|date|doctor|email|mobile|phone)\b/i.test(
+    compact,
+  );
 }
 
 function mapSupportedKeyFromName(name: string): BiomarkerKey | undefined {

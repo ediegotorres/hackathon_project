@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import vision from "@google-cloud/vision";
+import { extractBiomarkersWithGemini, hasGeminiExtractionConfig } from "@/src/lib/aiReportExtraction";
 import { extractBiomarkersFromText } from "@/src/lib/reportExtraction";
 import type { ReportExtractionResponse, ReportUploadFileType } from "@/src/lib/types";
 
@@ -135,7 +136,29 @@ export async function POST(request: Request) {
       extractedText = new TextDecoder("utf-8", { fatal: false }).decode(content);
     }
 
-    const extraction = extractBiomarkersFromText(extractedText);
+    const fallbackExtraction = extractBiomarkersFromText(extractedText);
+    let extraction = fallbackExtraction;
+
+    if (hasGeminiExtractionConfig()) {
+      try {
+        const aiExtraction = await extractBiomarkersWithGemini(extractedText);
+        if (aiExtraction.allBiomarkers.length > 0) {
+          extraction = aiExtraction;
+        } else {
+          extraction = {
+            allBiomarkers: fallbackExtraction.allBiomarkers,
+            warnings: [...aiExtraction.warnings, ...fallbackExtraction.warnings, "Used rules parser fallback."],
+          };
+        }
+      } catch (error) {
+        const aiMessage = toMessage(error);
+        extraction = {
+          allBiomarkers: fallbackExtraction.allBiomarkers,
+          warnings: [`AI extraction failed (${aiMessage}). Used rules parser fallback.`, ...fallbackExtraction.warnings],
+        };
+      }
+    }
+
     const response: ReportExtractionResponse = {
       fileName,
       fileType,

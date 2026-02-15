@@ -39,6 +39,14 @@ type UnifiedMarker = {
   coreKey?: MarkerKey;
 };
 
+type MarkerEducation = {
+  aliases: string[];
+  whatIsIt: string;
+  whyItMatters: string;
+  contributors?: string[];
+  questions?: string[];
+};
+
 function markerFromAnalysis(analysis: AnalysisResult | null, key: MarkerKey) {
   return analysis?.biomarkers.find((item) => item.key === key) ?? null;
 }
@@ -143,6 +151,110 @@ function bloodPressureContext(name: string) {
     };
   }
 
+  return null;
+}
+
+const markerEducationLibrary: MarkerEducation[] = [
+  {
+    aliases: ["haemoglobin", "hemoglobin", "hb", "hgb"],
+    whatIsIt:
+      "Haemoglobin is the oxygen-carrying protein inside red blood cells. It helps move oxygen from your lungs to your body.",
+    whyItMatters:
+      "If haemoglobin is low, you may feel tired, weak, or short of breath. If high, it can reflect dehydration, smoking, altitude, or other conditions.",
+    contributors: ["Iron, B12, and folate status", "Hydration level", "Blood loss or chronic disease"],
+    questions: [
+      "Could this value explain fatigue, breathlessness, or low stamina?",
+      "Do I need iron, B12, folate, or ferritin testing?",
+      "When should I repeat a complete blood count?",
+    ],
+  },
+  {
+    aliases: ["red blood cell count", "rbc count", "rbc"],
+    whatIsIt: "Red blood cell count is the number of red blood cells in a blood sample.",
+    whyItMatters:
+      "It helps assess oxygen delivery and can support anemia evaluation when interpreted with haemoglobin, MCV, and related markers.",
+  },
+  {
+    aliases: ["pcv", "hematocrit", "haematocrit", "hct"],
+    whatIsIt: "PCV (hematocrit) is the percentage of blood volume made up by red blood cells.",
+    whyItMatters:
+      "It helps show whether blood is relatively diluted or concentrated and supports interpretation of anemia or dehydration.",
+  },
+  {
+    aliases: ["mean corpuscular volume", "mcv"],
+    whatIsIt: "MCV is the average size of your red blood cells.",
+    whyItMatters: "It helps classify anemia patterns, for example smaller cells versus larger cells.",
+  },
+  {
+    aliases: ["mean corpuscular hemoglobin", "mch"],
+    whatIsIt: "MCH is the average amount of hemoglobin in each red blood cell.",
+    whyItMatters: "It helps add context to red blood cell indices when evaluating anemia patterns.",
+  },
+  {
+    aliases: ["mean corpuscular hemoglobin concentration", "mchc"],
+    whatIsIt: "MCHC is the concentration of hemoglobin inside red blood cells.",
+    whyItMatters: "It helps evaluate whether red blood cells are relatively pale or concentrated in hemoglobin.",
+  },
+  {
+    aliases: ["rdw", "rdw cv", "rdw sd"],
+    whatIsIt: "RDW shows how much red blood cell sizes vary from each other.",
+    whyItMatters:
+      "Higher variation can support early nutritional deficiency or mixed blood cell populations, alongside other CBC markers.",
+  },
+  {
+    aliases: ["total wbc count", "white blood cell count", "wbc count", "wbc"],
+    whatIsIt: "Total WBC count is the number of white blood cells that help fight infection and inflammation.",
+    whyItMatters:
+      "Very low or high values can reflect infection, inflammation, medication effects, or bone marrow-related conditions.",
+  },
+  {
+    aliases: ["neutrophils", "neu%", "neutrophils %"],
+    whatIsIt: "Neutrophils are white blood cells that respond quickly to bacterial infections and acute inflammation.",
+    whyItMatters: "Shifts can happen with infection, stress, steroid use, and inflammatory conditions.",
+  },
+  {
+    aliases: ["lymphocytes", "lym%", "lymphocytes %"],
+    whatIsIt: "Lymphocytes are white blood cells involved in immune memory, viral defense, and antibody responses.",
+    whyItMatters: "Changes can occur with viral illness, immune conditions, stress responses, and some medications.",
+  },
+  {
+    aliases: ["monocytes", "mon%", "monocytes %"],
+    whatIsIt: "Monocytes are immune cells involved in cleanup and longer-term inflammatory responses.",
+    whyItMatters: "Persistent shifts can reflect chronic inflammation or recovery phase after infection.",
+  },
+  {
+    aliases: ["eosinophils", "eos%", "eosinophils %"],
+    whatIsIt: "Eosinophils are white blood cells often linked to allergy, asthma, and some parasitic infections.",
+    whyItMatters: "Higher values can suggest allergic or eosinophilic inflammatory patterns in context.",
+  },
+  {
+    aliases: ["basophils", "bas%", "basophils %"],
+    whatIsIt: "Basophils are a small white blood cell population involved in allergic and inflammatory signaling.",
+    whyItMatters: "Large changes are uncommon and should be interpreted with total white cell patterns.",
+  },
+  {
+    aliases: ["platelet count", "platelet", "plt"],
+    whatIsIt: "Platelets are cell fragments that help blood clot and stop bleeding.",
+    whyItMatters:
+      "Low counts can increase bleeding risk; very high counts can be reactive or occasionally increase clotting risk.",
+  },
+];
+
+function findMarkerEducation(name: string) {
+  const normalized = normalizeMarkerName(name);
+  if (!normalized) return null;
+
+  for (const entry of markerEducationLibrary) {
+    const matched = entry.aliases.some((alias) => {
+      const aliasNormalized = normalizeMarkerName(alias);
+      return (
+        normalized === aliasNormalized ||
+        normalized.includes(aliasNormalized) ||
+        aliasNormalized.includes(normalized)
+      );
+    });
+    if (matched) return entry;
+  }
   return null;
 }
 
@@ -280,6 +392,20 @@ export default function ReportResultsPage() {
     if (allMarkers.length === 0) return null;
     return allMarkers.find((item) => item.id === selectedMarkerId) ?? allMarkers[0];
   }, [allMarkers, selectedMarkerId]);
+  const activeMarkerEducation = useMemo(() => {
+    if (!activeMarker) return null;
+    return findMarkerEducation(activeMarker.label);
+  }, [activeMarker]);
+  const activeContributorItems = useMemo(() => {
+    if (!activeMarker) return [];
+    if (activeMarker.contributors?.length) return activeMarker.contributors;
+    return activeMarkerEducation?.contributors ?? [];
+  }, [activeMarker, activeMarkerEducation]);
+  const activeQuestionItems = useMemo(() => {
+    if (!activeMarker) return [];
+    if (activeMarker.questions?.length) return activeMarker.questions;
+    return activeMarkerEducation?.questions ?? [];
+  }, [activeMarker, activeMarkerEducation]);
 
   const summary = analysis?.overall ?? { highCount: 0, borderlineCount: 0, normalCount: 0 };
 
@@ -478,49 +604,43 @@ export default function ReportResultsPage() {
                     {`${activeMarker.value} ${activeMarker.unit ?? ""}`.trim()}
                   </p>
                 </div>
-                {activeMarker.meaning || activeMarker.contributors?.length || activeMarker.questions?.length ? (
-                  <>
-                    <section>
-                      <h3 className="text-sm font-semibold">What it means</h3>
-                      <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                        {activeMarker.meaning || "Use the provided range and clinical context to interpret this value."}
-                      </p>
-                    </section>
-                    <section>
-                      <h3 className="text-sm font-semibold">Common contributors</h3>
-                      {activeMarker.contributors?.length ? (
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
-                          {activeMarker.contributors.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="mt-1 text-sm text-[var(--ink-soft)]">Details not available for this marker.</p>
-                      )}
-                    </section>
-                    <section>
-                      <h3 className="text-sm font-semibold">Questions</h3>
-                      {activeMarker.questions?.length ? (
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
-                          {activeMarker.questions.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="mt-1 text-sm text-[var(--ink-soft)]">Details not available for this marker.</p>
-                      )}
-                    </section>
-                  </>
-                ) : (
-                  <section>
-                    <h3 className="text-sm font-semibold">What it means</h3>
-                    <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                      {activeMarker.rangeText
+                <section>
+                  <h3 className="text-sm font-semibold">What this marker is</h3>
+                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                    {activeMarkerEducation?.whatIsIt ||
+                      `${activeMarker.label} is a reported lab marker from this panel. Interpret it with trends and clinical context.`}
+                  </p>
+                </section>
+                <section>
+                  <h3 className="text-sm font-semibold">Why it matters</h3>
+                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                    {activeMarker.meaning ||
+                      activeMarkerEducation?.whyItMatters ||
+                      (activeMarker.rangeText
                         ? `Use this reported range for context: ${activeMarker.rangeText}.`
-                        : "No interpretation text was generated for this marker."}
-                    </p>
+                        : "No interpretation text was generated for this marker.")}
+                  </p>
+                </section>
+                {activeContributorItems.length > 0 ? (
+                  <section>
+                    <h3 className="text-sm font-semibold">Common contributors</h3>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
+                      {activeContributorItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
                   </section>
-                )}
+                ) : null}
+                {activeQuestionItems.length > 0 ? (
+                  <section>
+                    <h3 className="text-sm font-semibold">Questions</h3>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
+                      {activeQuestionItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
                 <section>
                   <h3 className="text-sm font-semibold">What to ask your clinician</h3>
                   <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
