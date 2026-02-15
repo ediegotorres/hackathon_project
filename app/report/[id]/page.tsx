@@ -9,6 +9,7 @@ import { EmptyState } from "@/src/components/EmptyState";
 import { StatusChip } from "@/src/components/StatusChip";
 import { generateMockAnalysis } from "@/src/lib/analyze";
 import { resolveCoreBiomarkers } from "@/src/lib/biomarkerMapping";
+import { normalizeMarkerName, statusForAdditionalMarker, summarizeReportStatuses } from "@/src/lib/markerStatus";
 import { deleteReportById, loadAnalysis, loadReports } from "@/src/lib/storage";
 import type { AnalysisResult, Biomarkers, LabReport } from "@/src/lib/types";
 import { formatDate, makeId } from "@/src/lib/utils";
@@ -55,52 +56,6 @@ type ChatMessage = {
 
 function markerFromAnalysis(analysis: AnalysisResult | null, key: MarkerKey) {
   return analysis?.biomarkers.find((item) => item.key === key) ?? null;
-}
-
-function mapStatus(value?: string): MarkerCardStatus {
-  const normalized = value?.toLowerCase().trim();
-  if (normalized === "high" || normalized === "abnormal") return "high";
-  if (normalized === "borderline") return "borderline";
-  if (normalized === "low") return "low";
-  if (normalized === "normal") return "normal";
-  return "neutral";
-}
-
-function derivedVitalsStatus(name: string, value: number): MarkerCardStatus | null {
-  const normalized = normalizeMarkerName(name);
-
-  if (normalized.includes("systolic blood pressure")) {
-    if (value < 90) return "low";
-    if (value >= 140) return "high";
-    if (value >= 120) return "borderline";
-    return "normal";
-  }
-
-  if (normalized.includes("diastolic blood pressure")) {
-    if (value < 60) return "low";
-    if (value >= 90) return "high";
-    if (value >= 80) return "borderline";
-    return "normal";
-  }
-
-  if (normalized === "pulse" || normalized.includes("heart rate")) {
-    if (value < 60) return "low";
-    if (value > 110) return "high";
-    if (value > 100 && value <= 110) return "borderline";
-    return "normal";
-  }
-
-  return null;
-}
-
-function statusForAdditionalMarker(name: string, value: number, status?: string): MarkerCardStatus {
-  const derived = derivedVitalsStatus(name, value);
-  if (derived) return derived;
-  return mapStatus(status);
-}
-
-function normalizeMarkerName(name: string) {
-  return name.toLowerCase().replace(/[^\da-z]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function bloodPressureContext(name: string) {
@@ -426,7 +381,13 @@ export default function ReportResultsPage() {
     return activeMarkerEducation?.questions ?? [];
   }, [activeMarker, activeMarkerEducation]);
 
-  const summary = analysis?.overall ?? { highCount: 0, borderlineCount: 0, normalCount: 0 };
+  const summary = useMemo(
+    () =>
+      currentReport
+        ? summarizeReportStatuses(currentReport, analysis)
+        : { highCount: 0, borderlineCount: 0, normalCount: 0, lowCount: 0 },
+    [analysis, currentReport],
+  );
 
   useEffect(() => {
     if (rightPanelTab !== "chat") return;
@@ -528,7 +489,7 @@ export default function ReportResultsPage() {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <p className="rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2 text-sm font-semibold">
-            High {summary.highCount} | Borderline {summary.borderlineCount} | Normal {summary.normalCount}
+            High {summary.highCount} | Borderline {summary.borderlineCount} | Normal {summary.normalCount} | Low {summary.lowCount}
           </p>
           <Link href="/history">
             <Button variant="secondary">Back to History</Button>

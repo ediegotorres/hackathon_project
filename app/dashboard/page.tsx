@@ -10,7 +10,9 @@ import { GroupedBarChart } from "@/src/components/GroupedBarChart";
 import { ProgressBar } from "@/src/components/ProgressBar";
 import { ReportListItem } from "@/src/components/ReportListItem";
 import { StatusChip } from "@/src/components/StatusChip";
+import { generateMockAnalysis } from "@/src/lib/analyze";
 import { resolveCoreBiomarkers } from "@/src/lib/biomarkerMapping";
+import { normalizeMarkerName, summarizeReportStatuses } from "@/src/lib/markerStatus";
 import { loadAnalysis, loadProfile, loadReports } from "@/src/lib/storage";
 import type { LabReport, UserProfile } from "@/src/lib/types";
 import { formatDate } from "@/src/lib/utils";
@@ -25,10 +27,6 @@ function profileCompleteness(profile: UserProfile | null) {
     Boolean(profile.activityLevel),
   ];
   return checks.filter(Boolean).length;
-}
-
-function normalizeMarkerName(name: string) {
-  return name.toLowerCase().replace(/[^\da-z]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 const coreMarkerMeta: Record<keyof LabReport["biomarkers"], { label: string; unit?: string }> = {
@@ -48,7 +46,11 @@ export default function DashboardPage() {
   const normalizedReports = reports.map((report) => ({ ...report, biomarkers: resolveCoreBiomarkers(report) }));
 
   const latestReport = normalizedReports[0] ?? null;
-  const latestAnalysis = latestReport ? loadAnalysis(latestReport.id) : null;
+  const savedLatestAnalysis = latestReport ? loadAnalysis(latestReport.id) : null;
+  const latestAnalysis = latestReport ? savedLatestAnalysis ?? generateMockAnalysis(latestReport, profile) : null;
+  const latestSummary = latestReport
+    ? summarizeReportStatuses(latestReport, latestAnalysis)
+    : { highCount: 0, borderlineCount: 0, normalCount: 0, lowCount: 0 };
   const completeCount = profileCompleteness(profile);
   const optionMap = new Map<string, { id: string; label: string; unit?: string; isCore: boolean }>();
   normalizedReports.forEach((report) => {
@@ -185,28 +187,33 @@ export default function DashboardPage() {
         />
         <Card className="bg-[linear-gradient(180deg,var(--surface)_0%,var(--surface-strong)_100%)] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Flags</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-rose-700">High</p>
-              <p className="text-2xl font-bold text-rose-700">{latestAnalysis?.overall.highCount ?? 0}</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div className="flex min-h-[108px] flex-col items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-center">
+              <p className="whitespace-nowrap text-[11px] font-semibold uppercase leading-none tracking-[0.04em] text-rose-700">High</p>
+              <p className="text-2xl font-bold text-rose-700">{latestSummary.highCount}</p>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">Borderline</p>
-              <p className="text-2xl font-bold text-amber-700">{latestAnalysis?.overall.borderlineCount ?? 0}</p>
+            <div className="flex min-h-[108px] flex-col items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center">
+              <p className="whitespace-nowrap text-[11px] font-semibold uppercase leading-none tracking-[0.02em] text-amber-700">Borderline</p>
+              <p className="text-2xl font-bold text-amber-700">{latestSummary.borderlineCount}</p>
             </div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">Normal</p>
-              <p className="text-2xl font-bold text-emerald-700">{latestAnalysis?.overall.normalCount ?? 0}</p>
+            <div className="flex min-h-[108px] flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center">
+              <p className="whitespace-nowrap text-[11px] font-semibold uppercase leading-none tracking-[0.04em] text-emerald-700">Normal</p>
+              <p className="text-2xl font-bold text-emerald-700">{latestSummary.normalCount}</p>
+            </div>
+            <div className="flex min-h-[108px] flex-col items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-center">
+              <p className="whitespace-nowrap text-[11px] font-semibold uppercase leading-none tracking-[0.04em] text-sky-700">Low</p>
+              <p className="text-2xl font-bold text-sky-700">{latestSummary.lowCount}</p>
             </div>
           </div>
-          <p className="mt-2 text-sm text-[var(--ink-soft)]">From latest saved analysis</p>
+          <p className="mt-2 text-sm text-[var(--ink-soft)]">From latest report markers</p>
         </Card>
         <AtAGlanceCard label="Tracked Biomarkers" value={trackedValue} subtitle={trackedSubtitle} />
       </section>
       <div className="flex flex-wrap gap-2">
-        <StatusChip status="high" label={`High ${latestAnalysis?.overall.highCount ?? 0}`} />
-        <StatusChip status="borderline" label={`Borderline ${latestAnalysis?.overall.borderlineCount ?? 0}`} />
-        <StatusChip status="normal" label={`Normal ${latestAnalysis?.overall.normalCount ?? 0}`} />
+        <StatusChip status="high" label={`High ${latestSummary.highCount}`} />
+        <StatusChip status="borderline" label={`Borderline ${latestSummary.borderlineCount}`} />
+        <StatusChip status="normal" label={`Normal ${latestSummary.normalCount}`} />
+        <StatusChip status="low" label={`Low ${latestSummary.lowCount}`} />
       </div>
 
       <Card title="Profile Summary">
