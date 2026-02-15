@@ -143,7 +143,7 @@ export default function ProfilePage() {
             label="Name"
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Jane Doe"
+            placeholder="Enter name"
           />
           <Input
             label="Age"

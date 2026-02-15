@@ -75,8 +75,20 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {profile?.name ? `${profile.name}'s Dashboard` : "Dashboard"}
+        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+          {profile?.name ? (
+            <>
+              <span className="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-slate-500">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
+                  <path d="M4 20a8 8 0 0 1 16 0" />
+                </svg>
+              </span>
+              <span>{`${profile.name}'s Dashboard`}</span>
+            </>
+          ) : (
+            "Dashboard"
+          )}
         </h1>
         <div className="flex gap-2">
           <Link href="/new-report">
