@@ -3,6 +3,7 @@
 :root {
   --surface: #f4f7f7;
   --surface-strong: #e8efee;
+  --glass: rgba(255, 255, 255, 0.68);
   --ink: #17212e;
   --ink-soft: #314253;
   --muted: #4b5f74;
@@ -10,7 +11,29 @@
   --brand: #0f766e;
   --brand-strong: #0b5f59;
   --brand-soft: #99f6e4;
+  --positive: #059669;
+  --warning: #b45309;
+  --risk-high: #be123c;
+  --neutral: #475569;
   --danger: #be123c;
+}
+
+.theme-dark {
+  --surface: #0f1826;
+  --surface-strong: #1a2738;
+  --glass: rgba(15, 23, 42, 0.65);
+  --ink: #e2e8f0;
+  --ink-soft: #b6c4d8;
+  --muted: #9fb0c8;
+  --line: #2a3a52;
+  --brand: #14b8a6;
+  --brand-strong: #0d9488;
+  --brand-soft: #2dd4bf;
+  --positive: #34d399;
+  --warning: #f59e0b;
+  --risk-high: #fb7185;
+  --neutral: #94a3b8;
+  --danger: #fb7185;
 }
 
 @theme inline {
@@ -24,4 +47,64 @@ body {
     linear-gradient(180deg, #f7faf9 0%, #eef5f4 100%);
   color: var(--ink);
   font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", "Segoe UI Variable", sans-serif;
+}
+
+.theme-dark body {
+  background:
+    radial-gradient(circle at 0% 0%, #0c1523 0%, #0b1320 40%, rgba(15, 23, 42, 0.9) 100%),
+    linear-gradient(180deg, #0b1220 0%, #0d1728 100%);
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.14;
+  }
+  80% {
+    opacity: 0.08;
+  }
+  100% {
+    transform: translateY(-18px) translateX(10px);
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(190, 18, 60, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(190, 18, 60, 0);
+  }
+}
+
+.animate-page-in {
+  animation: page-in 320ms ease-out both;
 }

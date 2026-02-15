@@ -3,7 +3,7 @@ type Status = "normal" | "borderline" | "high" | "neutral";
 const classes: Record<Status, string> = {
   normal: "border border-emerald-300 bg-emerald-100 text-emerald-900",
   borderline: "border border-amber-300 bg-amber-100 text-amber-900",
-  high: "border border-rose-300 bg-rose-100 text-rose-900",
+  high: "border border-rose-300 bg-rose-100 text-rose-900 motion-safe:animate-[pulse-soft_2.2s_ease-in-out_infinite]",
   neutral: "border border-slate-300 bg-slate-100 text-slate-800",
 };
 

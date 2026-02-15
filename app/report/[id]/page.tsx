@@ -57,16 +57,14 @@ function normalizeMarkerName(name: string) {
 
 function deltaView(current?: number, previous?: number) {
   if (typeof current !== "number") {
-    return { text: "--", trend: "neutral" as const };
+    return { value: 0, trend: "neutral" as const };
   }
   if (typeof previous !== "number") {
-    return { text: `NEW ${current}`, trend: "new" as const };
+    return { value: current, trend: "new" as const };
   }
   const delta = Number((current - previous).toFixed(2));
-  if (delta === 0) return { text: "0", trend: "neutral" as const };
-  return delta > 0
-    ? { text: `UP +${delta}`, trend: "up" as const }
-    : { text: `DOWN ${delta}`, trend: "down" as const };
+  if (delta === 0) return { value: 0, trend: "neutral" as const };
+  return delta > 0 ? { value: delta, trend: "up" as const } : { value: delta, trend: "down" as const };
 }
 
 export default function ReportResultsPage() {
@@ -296,20 +294,29 @@ export default function ReportResultsPage() {
                   {allMarkers.map((marker) => {
                     const delta = deltaView(marker.value, previousMarkerValues.get(marker.compareKey));
                     return (
-                      <p key={`delta-${marker.id}`} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm">
+                      <p
+                        key={`delta-${marker.id}`}
+                        className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
+                      >
                         <span className="font-medium">{marker.label}</span>{" "}
                         <span
                           className={
                             delta.trend === "up"
-                              ? "text-amber-700"
+                              ? "inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800"
                               : delta.trend === "down"
-                                ? "text-emerald-700"
+                                ? "inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800"
                                 : delta.trend === "new"
-                                  ? "text-teal-700"
-                                : "text-[var(--ink-soft)]"
+                                  ? "inline-flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 font-semibold text-teal-800"
+                                : "inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700"
                           }
                         >
-                          {delta.text}
+                          {delta.trend === "up"
+                            ? `^ +${delta.value} Elevated`
+                            : delta.trend === "down"
+                              ? `v ${delta.value} Improved`
+                              : delta.trend === "new"
+                                ? `* NEW ${delta.value}`
+                                : "0 Stable"}
                         </span>
                       </p>
                     );
