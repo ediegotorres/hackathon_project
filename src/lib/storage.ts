@@ -52,6 +52,13 @@ export function saveAnalysis(reportId: string, analysis: AnalysisResult) {
   window.localStorage.setItem(`${ANALYSIS_PREFIX}${reportId}`, JSON.stringify(analysis));
 }
 
+export function deleteReportById(reportId: string) {
+  if (!isBrowser()) return;
+  const reports = loadReports().filter((report) => report.id !== reportId);
+  saveReports(reports);
+  window.localStorage.removeItem(`${ANALYSIS_PREFIX}${reportId}`);
+}
+
 export function setDemoMode(mode: "sample" | "none") {
   if (!isBrowser()) return;
   window.localStorage.setItem(DEMO_MODE_KEY, mode);

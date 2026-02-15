@@ -99,6 +99,7 @@ export async function analyzeWithGemini(data: GeminiAnalysisRequest): Promise<Ge
   const profileText = data.profile
     ? `
 Patient Profile:
+${data.profile.name ? `- Name: ${data.profile.name}` : ""}
 - Age: ${data.profile.age} years
 - Sex at Birth: ${data.profile.sexAtBirth}
 - Height: ${data.profile.heightCm} cm

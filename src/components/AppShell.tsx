@@ -44,6 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [initialDemoState] = useState(getInitialDemoState);
   const [demoMode, setDemoMode] = useState<"sample" | "none">(initialDemoState.demoMode);
   const [demoVisualEnabled, setDemoVisualEnabled] = useState(initialDemoState.demoVisualEnabled);
+  const [demoBusy, setDemoBusy] = useState(false);
   const isDemoActive = demoVisualEnabled && demoMode === "sample";
   const isMenuOpen = menuOpen && menuPath === pathname;
 
@@ -108,7 +109,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Button
                 variant="secondary"
                 className="h-9 px-3 text-sm"
-                onClick={() => {
+                disabled={demoBusy}
+                onClick={async () => {
+                  if (demoBusy) return;
                   if (isDemoActive) {
                     clearLabLensData();
                     persistDemoMode("none");
@@ -119,15 +122,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                     window.location.assign(pathname || "/");
                     return;
                   }
-                  seedSampleData();
-                  window.localStorage.setItem(DEMO_VISUAL_KEY, "true");
-                  setDemoVisualEnabled(true);
-                  setDemoMode("sample");
-                  setMenuOpen(false);
-                  window.location.assign(pathname || "/");
+                  setDemoBusy(true);
+                  try {
+                    await seedSampleData();
+                    window.localStorage.setItem(DEMO_VISUAL_KEY, "true");
+                    setDemoVisualEnabled(true);
+                    setDemoMode("sample");
+                    setMenuOpen(false);
+                    window.location.assign(pathname || "/");
+                  } catch (error) {
+                    console.error("Failed to seed demo data:", error);
+                    setDemoBusy(false);
+                  }
                 }}
               >
-                {isDemoActive ? "Exit Demo" : "Demo"}
+                {demoBusy ? "Loading..." : isDemoActive ? "Exit Demo" : "Demo"}
               </Button>
               <button
                 type="button"

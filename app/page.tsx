@@ -47,7 +47,8 @@ export default function Home() {
         </Card>
         <Card title="Analyze" subtitle="Deterministic API stub today">
           <p className="text-sm text-[var(--ink-soft)]">
-            Calls `POST /api/analyze`; if unavailable, local mock analysis keeps demo flow working.
+            Get a clear interpretation of each marker with risk status, plain-language context, practical next steps,
+            and doctor discussion prompts.
           </p>
         </Card>
         <Card title="Review" subtitle="Summaries and questions">

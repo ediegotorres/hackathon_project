@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type ChangeEvent } from "react";
 import { generateMockAnalysis } from "@/src/lib/analyze";
+import { inferMappedKey } from "@/src/lib/biomarkerMapping";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { Input } from "@/src/components/Input";
@@ -165,6 +166,7 @@ export default function NewReportPage() {
     const additionalPayload = additionalBiomarkers.reduce<AdditionalBiomarker[]>((acc, item) => {
       const name = item.name.trim();
       const value = Number(item.value.trim());
+      const mappedKey = item.mappedKey ?? inferMappedKey(name);
       if (!name || !Number.isFinite(value)) {
         return acc;
       }
@@ -172,7 +174,7 @@ export default function NewReportPage() {
       acc.push({
         name,
         value,
-        mappedKey: item.mappedKey,
+        mappedKey,
         unit: item.unit.trim() || undefined,
         referenceRange: item.referenceRange.trim() || undefined,
         status: item.status.trim() || undefined,
@@ -180,10 +182,17 @@ export default function NewReportPage() {
       return acc;
     }, []);
 
+    const coreBiomarkers = additionalPayload.reduce<LabReport["biomarkers"]>((acc, item) => {
+      if (!item.mappedKey) return acc;
+      if (typeof acc[item.mappedKey] === "number") return acc;
+      acc[item.mappedKey] = item.value;
+      return acc;
+    }, {});
+
     const report: LabReport = {
       id: makeId("report"),
       dateISO,
-      biomarkers: {},
+      biomarkers: coreBiomarkers,
       additionalBiomarkers: additionalPayload.length ? additionalPayload : undefined,
       notes: notes.trim() || undefined,
       createdAtISO: new Date().toISOString(),

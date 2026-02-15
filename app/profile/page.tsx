@@ -21,6 +21,7 @@ interface Errors {
 }
 
 interface ProfileFormState {
+  name: string;
   age: string;
   sexAtBirth: SexAtBirth | "";
   heightCm: string;
@@ -31,6 +32,7 @@ interface ProfileFormState {
 }
 
 const defaultForm = {
+  name: "",
   age: "",
   sexAtBirth: "",
   heightCm: "",
@@ -52,6 +54,7 @@ function getInitialProfileState() {
   return {
     profileId: existing.id,
     form: {
+      name: existing.name || "",
       age: String(existing.age),
       sexAtBirth: existing.sexAtBirth,
       heightCm: String(existing.heightCm),
@@ -103,6 +106,7 @@ export default function ProfilePage() {
     if (!validate()) return;
     const profile: UserProfile = {
       id: profileId,
+      name: form.name.trim() || undefined,
       age: Number(form.age),
       sexAtBirth: form.sexAtBirth as SexAtBirth,
       heightCm: Number(form.heightCm),
@@ -135,6 +139,12 @@ export default function ProfilePage() {
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Name"
+            value={form.name}
+            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+            placeholder="Jane Doe"
+          />
           <Input
             label="Age"
             type="number"

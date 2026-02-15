@@ -4,6 +4,7 @@ export type Status = "normal" | "borderline" | "high";
 
 export interface UserProfile {
   id: string;
+  name?: string;
   age: number;
   sexAtBirth: SexAtBirth;
   heightCm: number;

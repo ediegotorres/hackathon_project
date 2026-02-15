@@ -6,7 +6,7 @@ import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { EmptyState } from "@/src/components/EmptyState";
 import { StatusChip } from "@/src/components/StatusChip";
-import { loadAnalysis, loadReports } from "@/src/lib/storage";
+import { deleteReportById, loadAnalysis, loadReports } from "@/src/lib/storage";
 import type { AnalysisResult, LabReport } from "@/src/lib/types";
 import { formatDate } from "@/src/lib/utils";
 
@@ -33,8 +33,21 @@ function reportBadges(
 }
 
 export default function HistoryPage() {
-  const [reports] = useState<LabReport[]>(() => loadReports());
+  const [reports, setReports] = useState<LabReport[]>(() => loadReports());
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+  const onDeleteReport = (reportId: string) => {
+    deleteReportById(reportId);
+    setReports((prev) => prev.filter((report) => report.id !== reportId));
+    setConfirmingDeleteId((prev) => (prev === reportId ? null : prev));
+    setExpanded((prev) => {
+      if (!prev[reportId]) return prev;
+      const next = { ...prev };
+      delete next[reportId];
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -101,9 +114,37 @@ export default function HistoryPage() {
                       ) : null}
                     </div>
                   </div>
-                  <Link href={`/report/${report.id}`} className="self-center">
-                    <Button className="min-w-28">View Results</Button>
-                  </Link>
+                  <div className="flex flex-col items-end gap-2 self-center">
+                    <Link href={`/report/${report.id}`}>
+                      <Button className="min-w-28">View Results</Button>
+                    </Link>
+                    {confirmingDeleteId === report.id ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="danger"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => onDeleteReport(report.id)}
+                        >
+                          Confirm Delete
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => setConfirmingDeleteId(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        className="h-8 min-w-28 border-slate-300 bg-slate-100 px-3 text-xs text-slate-700 hover:!border-rose-700 hover:!bg-rose-600 hover:!text-white"
+                        onClick={() => setConfirmingDeleteId(report.id)}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
             );

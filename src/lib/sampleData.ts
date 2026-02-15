@@ -1,6 +1,6 @@
 import { generateMockAnalysis } from "@/src/lib/analyze";
 import { saveAnalysis, saveProfile, saveReports, setDemoMode } from "@/src/lib/storage";
-import type { LabReport, UserProfile } from "@/src/lib/types";
+import type { AnalysisResult, LabReport, UserProfile } from "@/src/lib/types";
 import { makeId } from "@/src/lib/utils";
 
 function makeReport(dateISO: string, biomarkers: LabReport["biomarkers"], notes: string): LabReport {
@@ -13,9 +13,10 @@ function makeReport(dateISO: string, biomarkers: LabReport["biomarkers"], notes:
   };
 }
 
-export function seedSampleData() {
+export async function seedSampleData() {
   const profile: UserProfile = {
     id: makeId("profile"),
+    name: "Jane Doe",
     age: 38,
     sexAtBirth: "female",
     heightCm: 168,
@@ -45,10 +46,21 @@ export function seedSampleData() {
 
   saveProfile(profile);
   saveReports(reports);
-  reports.forEach((report) => {
-    const analysis = generateMockAnalysis(report, profile);
+  for (const report of reports) {
+    let analysis: AnalysisResult;
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, report }),
+      });
+      if (!response.ok) throw new Error("Sample analysis API request failed.");
+      analysis = (await response.json()) as AnalysisResult;
+    } catch {
+      analysis = generateMockAnalysis(report, profile);
+    }
     saveAnalysis(report.id, analysis);
-  });
+  }
   setDemoMode("sample");
 
   return { profile, reports };
