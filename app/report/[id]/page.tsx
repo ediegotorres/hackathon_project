@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/src/components/Button";
 import { Card } from "@/src/components/Card";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -11,7 +11,7 @@ import { generateMockAnalysis } from "@/src/lib/analyze";
 import { resolveCoreBiomarkers } from "@/src/lib/biomarkerMapping";
 import { deleteReportById, loadAnalysis, loadReports } from "@/src/lib/storage";
 import type { AnalysisResult, Biomarkers, LabReport } from "@/src/lib/types";
-import { formatDate } from "@/src/lib/utils";
+import { formatDate, makeId } from "@/src/lib/utils";
 
 type MarkerKey = keyof Biomarkers;
 
@@ -45,6 +45,12 @@ type MarkerEducation = {
   whyItMatters: string;
   contributors?: string[];
   questions?: string[];
+};
+
+type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
 };
 
 function markerFromAnalysis(analysis: AnalysisResult | null, key: MarkerKey) {
@@ -279,6 +285,19 @@ export default function ReportResultsPage() {
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"details" | "chat">("details");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatError, setChatError] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: "assistant-welcome",
+      role: "assistant",
+      content:
+        "Ask me about this report or trends versus your previous report. I can explain markers in plain language.",
+    },
+  ]);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   const currentReport = useMemo(
     () => reports.find((item) => item.id === reportId) ?? null,
@@ -409,6 +428,12 @@ export default function ReportResultsPage() {
 
   const summary = analysis?.overall ?? { highCount: 0, borderlineCount: 0, normalCount: 0 };
 
+  useEffect(() => {
+    if (rightPanelTab !== "chat") return;
+    if (!chatScrollRef.current) return;
+    chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+  }, [chatMessages, rightPanelTab]);
+
   if (!currentReport) {
     return (
       <EmptyState
@@ -432,6 +457,66 @@ export default function ReportResultsPage() {
     setDeleting(true);
     deleteReportById(reportId);
     router.push("/history");
+  };
+
+  const onSendChatMessage = async () => {
+    if (chatLoading) return;
+    const question = chatInput.trim();
+    if (!question || !currentReport) return;
+
+    const userMessage: ChatMessage = {
+      id: makeId("user-chat"),
+      role: "user",
+      content: question,
+    };
+    const nextConversation = [...chatMessages, userMessage];
+
+    setChatMessages(nextConversation);
+    setChatInput("");
+    setChatError("");
+    setChatLoading(true);
+
+    try {
+      const normalizedCurrentReport: LabReport = {
+        ...currentReport,
+        biomarkers: currentBiomarkers,
+      };
+
+      const response = await fetch("/api/report-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          currentReport: normalizedCurrentReport,
+          previousReport: previousReport ?? null,
+          summaryText: analysis?.summaryText ?? null,
+          conversation: nextConversation.map((item) => ({
+            role: item.role,
+            content: item.content,
+          })),
+        }),
+      });
+
+      const payload = (await response.json()) as { answer?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to get AI response.");
+      }
+
+      const answer = payload.answer?.trim() || "I could not generate a response from the report data.";
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: makeId("assistant-chat"),
+          role: "assistant",
+          content: answer,
+        },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to get AI response.";
+      setChatError(message);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   return (
@@ -583,75 +668,152 @@ export default function ReportResultsPage() {
         </section>
 
         <aside className="lg:sticky lg:top-28 lg:self-start">
-          <Card title="Marker Details">
-            {!analysis ? (
-              <div className="space-y-4">
-                <p className="text-sm text-[var(--ink-soft)]">No analysis saved for this report yet.</p>
-                <div className="flex gap-2">
-                  <Link href="/dashboard">
-                    <Button variant="secondary">Back to Dashboard</Button>
-                  </Link>
-                  <Link href="/new-report">
-                    <Button>New Report</Button>
-                  </Link>
+          <Card title={rightPanelTab === "details" ? "Marker Details" : "AI Chat"}>
+            <div className="mb-4 inline-flex rounded-xl border border-[var(--line)] bg-[var(--surface)] p-1">
+              <button
+                type="button"
+                onClick={() => setRightPanelTab("details")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  rightPanelTab === "details"
+                    ? "bg-white text-[var(--ink)] shadow-sm"
+                    : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                }`}
+              >
+                Marker Details
+              </button>
+              <button
+                type="button"
+                onClick={() => setRightPanelTab("chat")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  rightPanelTab === "chat"
+                    ? "bg-white text-[var(--ink)] shadow-sm"
+                    : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                }`}
+              >
+                Ask AI
+              </button>
+            </div>
+
+            {rightPanelTab === "details" ? (
+              !analysis ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-[var(--ink-soft)]">No analysis saved for this report yet.</p>
+                  <div className="flex gap-2">
+                    <Link href="/dashboard">
+                      <Button variant="secondary">Back to Dashboard</Button>
+                    </Link>
+                    <Link href="/new-report">
+                      <Button>New Report</Button>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ) : activeMarker ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--ink-soft)]">{activeMarker.label}</p>
-                  <p className="text-3xl font-bold tracking-tight">
-                    {`${activeMarker.value} ${activeMarker.unit ?? ""}`.trim()}
-                  </p>
-                </div>
-                <section>
-                  <h3 className="text-sm font-semibold">What this marker is</h3>
-                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                    {activeMarkerEducation?.whatIsIt ||
-                      `${activeMarker.label} is a reported lab marker from this panel. Interpret it with trends and clinical context.`}
-                  </p>
-                </section>
-                <section>
-                  <h3 className="text-sm font-semibold">Why it matters</h3>
-                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                    {activeMarker.meaning ||
-                      activeMarkerEducation?.whyItMatters ||
-                      (activeMarker.rangeText
-                        ? `Use this reported range for context: ${activeMarker.rangeText}.`
-                        : "No interpretation text was generated for this marker.")}
-                  </p>
-                </section>
-                {activeContributorItems.length > 0 ? (
+              ) : activeMarker ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--ink-soft)]">{activeMarker.label}</p>
+                    <p className="text-3xl font-bold tracking-tight">
+                      {`${activeMarker.value} ${activeMarker.unit ?? ""}`.trim()}
+                    </p>
+                  </div>
                   <section>
-                    <h3 className="text-sm font-semibold">Common contributors</h3>
+                    <h3 className="text-sm font-semibold">What this marker is</h3>
+                    <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                      {activeMarkerEducation?.whatIsIt ||
+                        `${activeMarker.label} is a reported lab marker from this panel. Interpret it with trends and clinical context.`}
+                    </p>
+                  </section>
+                  <section>
+                    <h3 className="text-sm font-semibold">Why it matters</h3>
+                    <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                      {activeMarker.meaning ||
+                        activeMarkerEducation?.whyItMatters ||
+                        (activeMarker.rangeText
+                          ? `Use this reported range for context: ${activeMarker.rangeText}.`
+                          : "No interpretation text was generated for this marker.")}
+                    </p>
+                  </section>
+                  {activeContributorItems.length > 0 ? (
+                    <section>
+                      <h3 className="text-sm font-semibold">Common contributors</h3>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
+                        {activeContributorItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+                  {activeQuestionItems.length > 0 ? (
+                    <section>
+                      <h3 className="text-sm font-semibold">Questions</h3>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
+                        {activeQuestionItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+                  <section>
+                    <h3 className="text-sm font-semibold">What to ask your clinician</h3>
                     <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
-                      {activeContributorItems.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
+                      <li>What trend matters most in my context?</li>
+                      <li>What follow-up timing is appropriate?</li>
+                      <li>Which related tests would add clarity?</li>
                     </ul>
                   </section>
-                ) : null}
-                {activeQuestionItems.length > 0 ? (
-                  <section>
-                    <h3 className="text-sm font-semibold">Questions</h3>
-                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
-                      {activeQuestionItems.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-                <section>
-                  <h3 className="text-sm font-semibold">What to ask your clinician</h3>
-                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--ink-soft)]">
-                    <li>What trend matters most in my context?</li>
-                    <li>What follow-up timing is appropriate?</li>
-                    <li>Which related tests would add clarity?</li>
-                  </ul>
-                </section>
-              </div>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--ink-soft)]">Select a marker to see details.</p>
+              )
             ) : (
-              <p className="text-sm text-[var(--ink-soft)]">Select a marker to see details.</p>
+              <div className="space-y-3">
+                <p className="text-xs text-[var(--ink-soft)]">Ask about this report or trends versus your previous report.</p>
+
+                <div
+                  ref={chatScrollRef}
+                  className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"
+                >
+                  {chatMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`rounded-xl px-3 py-2 text-sm ${
+                        message.role === "user"
+                          ? "ml-8 bg-teal-600 text-white"
+                          : "mr-8 border border-[var(--line)] bg-white text-[var(--ink)]"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  ))}
+                  {chatLoading ? <p className="text-xs text-[var(--ink-soft)]">AI is thinking...</p> : null}
+                </div>
+
+                {chatError ? <p className="text-xs text-[var(--danger)]">{chatError}</p> : null}
+
+                <div className="space-y-2">
+                  <textarea
+                    rows={3}
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        void onSendChatMessage();
+                      }
+                    }}
+                    disabled={chatLoading}
+                    placeholder="Ask: Why is my RBC borderline? How did this change from last report?"
+                    className="w-full rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--muted)] motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                  />
+                  <Button
+                    type="button"
+                    className="h-9 w-full"
+                    onClick={() => void onSendChatMessage()}
+                    disabled={chatLoading}
+                  >
+                    {chatLoading ? "Sending..." : "Send"}
+                  </Button>
+                </div>
+              </div>
             )}
           </Card>
         </aside>
